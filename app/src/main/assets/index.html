@@ -1,0 +1,944 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>SiteBoard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one phone-width column; sticky header with a hazard stripe, scrolling body, fixed bottom tab bar */
+:root{
+  --bg:#F3F5F2; --surface:#FFFFFF; --sunk:#E9EDE9; --ink:#1B2425; --muted:#5D6A69; --line:#D9DFDB;
+  --accent:#F2B705; --accent-ink:#1B2425;
+  --ok:#23704A; --ok-bg:#DDF0E4; --warn:#9A6400; --warn-bg:#FCEFCB; --bad:#B42318; --bad-bg:#FBE1DD; --info:#1F5D99; --info-bg:#DCEAF7;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111617; --surface:#1A2123; --sunk:#232C2E; --ink:#E7ECEA; --muted:#9AA7A5; --line:#2D383A;
+  --accent:#F2B705; --accent-ink:#141A1B;
+  --ok:#5CC08B; --ok-bg:#183326; --warn:#E8B04B; --warn-bg:#382C12; --bad:#F2796B; --bad-bg:#3D1C19; --info:#78AEE3; --info-bg:#172A3D;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111617; --surface:#1A2123; --sunk:#232C2E; --ink:#E7ECEA; --muted:#9AA7A5; --line:#2D383A;
+  --accent:#F2B705; --accent-ink:#141A1B;
+  --ok:#5CC08B; --ok-bg:#183326; --warn:#E8B04B; --warn-bg:#382C12; --bad:#F2796B; --bad-bg:#3D1C19; --info:#78AEE3; --info-bg:#172A3D;
+  color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--ink);color:var(--bg)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px}
+.stripe{height:5px;background:repeating-linear-gradient(-45deg,var(--accent) 0 10px,var(--ink) 10px 20px)}
+.brand{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.brand b{color:var(--accent);font-weight:700}
+.today{font-family:var(--mono);font-size:12px;opacity:.8;text-align:right}
+main{padding-block:16px 110px}
+.note{font-size:13px;padding:10px 12px;border-radius:var(--r);background:var(--warn-bg);color:var(--warn);margin-bottom:14px}
+.note.info{background:var(--info-bg);color:var(--info)}
+h1{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;margin:0 0 4px;text-wrap:balance;letter-spacing:.01em}
+h2{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2 .count{font-family:var(--mono);font-size:12px;letter-spacing:0}
+.sub{color:var(--muted);font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:600px){.tiles{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px;text-align:start;cursor:pointer;min-width:0}
+.tile .lab{font-size:12px;color:var(--muted);line-height:1.25;min-height:30px}
+.tile .val{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.05;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile.money .val{font-size:24px}
+.tile.bad{border-color:var(--bad)} .tile.bad .val{color:var(--bad)}
+.tile.warn .val{color:var(--warn)} .tile.ok .val{color:var(--ok)}
+.list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:start;width:100%;min-width:0}
+.card:focus-visible,.tile:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;min-width:0}
+.row > *{min-width:0}
+.ttl{font-weight:600;overflow-wrap:anywhere}
+.code{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 12px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.chip{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;white-space:nowrap;background:var(--sunk);color:var(--muted)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.info{background:var(--info-bg);color:var(--info)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.bar{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink)}
+.alert{border-inline-start:4px solid var(--line)}
+.alert.s3{border-inline-start-color:var(--bad)} .alert.s2{border-inline-start-color:var(--warn)} .alert.s1{border-inline-start-color:var(--info)}
+.empty{padding:22px 16px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.armed{background:var(--bad);color:#fff;border-color:var(--bad)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.fab{position:fixed;inset-inline-end:max(16px,calc(env(safe-area-inset-right,0px) + 16px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:15;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;padding:14px 20px;font-size:15px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 0 8px;color:var(--muted);text-decoration:none;font-size:11.5px;font-weight:600}
+nav.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+nav.tabs a.on{color:var(--ink)} nav.tabs a.on svg{stroke:var(--ink)}
+nav.tabs a.on span{box-shadow:inset 0 -2px 0 var(--accent)}
+.seg{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:14px 0 4px;scrollbar-width:none}
+.seg a{flex:none;padding:7px 13px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:600}
+.seg a.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.back{display:inline-flex;gap:4px;color:var(--muted);text-decoration:none;font-size:13px;margin-bottom:8px}
+dl.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+dl.kv dt,dl.kv dd{padding:8px 12px;border-top:1px solid var(--line);margin:0;font-size:14px}
+dl.kv dt{color:var(--muted)} dl.kv dd{text-align:end;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px}
+dl.kv dt:first-of-type,dl.kv dt:first-of-type + dd{border-top:0}
+dl.kv dd.neg{color:var(--bad)}
+/* bottom sheet */
+.scrim{position:fixed;inset:0;background:rgba(10,14,15,.5);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:760px;max-height:92%;overflow:auto;border-radius:16px 16px 0 0;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+.sheet h3{font-family:var(--display);font-size:24px;margin:0 0 12px}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 10px}
+.form .f{display:flex;flex-direction:column;gap:4px;grid-column:span 2;min-width:0}
+.form .f.h{grid-column:span 1}
+.form .sec{grid-column:span 2;font-family:var(--display);font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-size:13px;margin-top:6px}
+.form label{font-size:12.5px;color:var(--muted);font-weight:500}
+.form input,.form select,.form textarea{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:15px}
+.form textarea{min-height:70px;resize:vertical}
+.form input:focus,.form select:focus,.form textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.sheet .actions{display:flex;justify-content:space-between;gap:8px;margin-top:16px;flex-wrap:wrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:50;max-width:90%}
+/* timeline */
+.tl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.tl-in{position:relative;min-width:max-content}
+.tl-row{display:flex;align-items:center;border-top:1px solid var(--line);height:34px}
+.tl-row.head{border-top:0;height:30px}
+.tl-lab{position:sticky;left:0;z-index:2;background:var(--surface);width:150px;flex:none;padding:0 8px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--line);height:100%;display:flex;align-items:center;gap:6px}
+.tl-track{position:relative;height:100%;flex:none;background-image:linear-gradient(to right,var(--line) 1px,transparent 1px);background-size:40px 100%}
+.tl-wk{position:absolute;top:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.tl-bar{position:absolute;top:9px;height:16px;border-radius:8px;background:var(--info);opacity:.85}
+.tl-bar.Done{background:var(--ok)} .tl-bar.Overdue{background:var(--bad)} .tl-bar.LateStart{background:var(--warn)}
+.tl-today{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);z-index:1}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+table.cf{width:100%;border-collapse:collapse;font-size:13px}
+table.cf th,table.cf td{padding:8px 10px;border-top:1px solid var(--line);text-align:end;font-family:var(--mono);font-variant-numeric:tabular-nums}
+table.cf th{font-family:var(--body);font-weight:600;color:var(--muted);font-size:12px;border-top:0}
+table.cf td:first-child,table.cf th:first-child{text-align:start}
+td.neg{color:var(--bad)}
+.tablebox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.toggle{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.toggle button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.toggle button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.langbtn{border:1px solid rgba(255,255,255,.35);background:transparent;color:inherit;border-radius:999px;padding:4px 11px;font-size:13px;font-weight:600;cursor:pointer}
+.top-r{display:flex;align-items:center;gap:12px}
+[dir=rtl] body{font-family:"IBM Plex Sans Arabic",var(--body)}
+[dir=rtl] h1,[dir=rtl] h2,[dir=rtl] .sheet h3,[dir=rtl] .form .sec,[dir=rtl] .tile .val{font-family:"IBM Plex Sans Arabic",var(--body);letter-spacing:0;text-transform:none}
+[dir=rtl] h1{font-size:27px}
+[dir=rtl] .num,[dir=rtl] .code,[dir=rtl] .today,[dir=rtl] dl.kv dd,[dir=rtl] table.cf td{font-family:"IBM Plex Sans Arabic",var(--body)}
+[dir=rtl] .tile .val{font-weight:700;font-size:27px} [dir=rtl] .tile.money .val{font-size:21px}
+[dir=rtl] .tl-lab{border-right:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top"><div class="wrap"><div class="brand">Site<b>Board</b></div><div class="top-r"><button class="langbtn" id="langBtn" data-act="lang" aria-label="Switch language">عربي</button><div class="today" id="today"></div></div></div><div class="stripe"></div></header>
+<main class="wrap" id="app"><div class="empty">Loading your projects…</div></main>
+<nav class="tabs" aria-label="Main"><div class="wrap">
+  <a href="#home" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Overview</span></a>
+  <a href="#projects" data-tab="projects"><svg viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/><path d="M4 21h16"/></svg><span>Projects</span></a>
+  <a href="#timeline" data-tab="timeline"><svg viewBox="0 0 24 24"><path d="M4 6h9M7 12h11M5 18h7"/><path d="M3 3v18"/></svg><span>Timeline</span></a>
+  <a href="#crews" data-tab="crews"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5.4 6-5.4s5.4 2 6 5.4"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.6.2 4.4 2 5 5.4"/></svg><span>Crews</span></a>
+  <a href="#setup" data-tab="setup"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Setup</span></a>
+</div></nav>
+<div id="layer"></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+
+<script>
+"use strict";
+const SAMPLE = {"crews":[{"id":"c1","name":"Plumbing Crew A","type":"Own Crew","trade":"Plumbing","foreman":"Ahmed","phone":"010-0000-0001"},{"id":"c2","name":"Electrical Sub - El Nour","type":"Subcontractor","trade":"Electrical","foreman":"Mahmoud","phone":"010-0000-0002"},{"id":"c3","name":"HVAC Sub - CoolTech","type":"Subcontractor","trade":"HVAC","foreman":"Tamer","phone":"010-0000-0003"},{"id":"c4","name":"Fire Fighting Sub","type":"Subcontractor","trade":"Fire Fighting","foreman":"Sherif","phone":"010-0000-0004"},{"id":"c5","name":"Low Current Sub","type":"Subcontractor","trade":"Low Current","foreman":"Omar","phone":"010-0000-0005"},{"id":"c6","name":"Gypsum Crew","type":"Own Crew","trade":"Gypsum Board","foreman":"Said","phone":"010-0000-0006"},{"id":"c7","name":"Painting Crew","type":"Own Crew","trade":"Painting","foreman":"Reda","phone":"010-0000-0007"},{"id":"c8","name":"Flooring Sub","type":"Subcontractor","trade":"Flooring","foreman":"Fathy","phone":"010-0000-0008"},{"id":"c9","name":"Carpentry Sub","type":"Subcontractor","trade":"Carpentry / Joinery","foreman":"Wael","phone":"010-0000-0009"}],"projects":[{"id":"p01","code":"P01","name":"Villa - Sheikh Zayed (SAMPLE)","client":"Mr. Hassan","consultant":"ACE Consultants","location":"Sheikh Zayed","scope":"MEP + Finishes","eng":"Eng. Karim","status":"Active","contract":4200000,"retention":5,"terms":30,"start":"2026-10-15","handover":"2027-01-31","bMat":1500000,"bLab":600000,"bSub":900000,"bEq":100000,"bOth":150000,"tasks":[{"tid":"T-001","scope":"MEP","trade":"Plumbing","desc":"Water supply & drainage - first fix","area":"Ground Floor","crew":"Plumbing Crew A","start":"2026-10-17","dur":8,"astart":"2026-10-17","afinish":"2026-10-27","pct":100,"id":"t1"},{"tid":"T-002","scope":"MEP","trade":"Electrical","desc":"Conduits & boxes - first fix","area":"Ground Floor","crew":"Electrical Sub - El Nour","start":"2026-10-20","dur":10,"astart":"2026-10-21","pct":70,"notes":"Waiting for boxes delivery","id":"t2"},{"tid":"T-003","scope":"MEP","trade":"Plumbing","desc":"Water supply & drainage - first fix","area":"First Floor","crew":"Plumbing Crew A","start":"2026-11-01","dur":8,"astart":"2026-11-01","pct":20,"id":"t3"},{"tid":"T-004","scope":"Finishes","trade":"Gypsum Board","desc":"Gypsum partitions & ceilings","area":"Ground Floor","crew":"Gypsum Crew","start":"2026-11-07","dur":12,"id":"t4"},{"tid":"T-005","scope":"MEP","trade":"Electrical","desc":"Wiring & cable pulling","area":"All Floors","crew":"Electrical Sub - El Nour","start":"2026-11-15","dur":10,"id":"t5"},{"tid":"T-006","scope":"MEP","trade":"HVAC","desc":"Split units - copper piping","area":"All Floors","crew":"HVAC Sub - CoolTech","start":"2026-11-10","dur":8,"id":"t6"},{"tid":"T-007","scope":"Finishes","trade":"Painting","desc":"Putty & primer","area":"Ground Floor","crew":"Painting Crew","start":"2026-11-23","dur":10,"id":"t7"},{"tid":"T-008","scope":"Finishes","trade":"Flooring","desc":"Porcelain tiling","area":"Ground Floor","crew":"Flooring Sub","start":"2026-12-05","dur":12,"id":"t8"},{"tid":"T-009","scope":"Finishes","trade":"Carpentry / Joinery","desc":"Doors & kitchen installation","area":"All Floors","crew":"Carpentry Sub","start":"2027-01-05","dur":10,"id":"t9"}],"materials":[{"no":"MR-01","item":"PPR pipes & fittings - First Floor","trade":"Plumbing","unit":"lot","task":"T-003","lead":5,"supplier":"El-Sherif Trading","qty":1,"price":85000,"orderedOn":"2026-10-25","qtyDel":1,"deliveredOn":"2026-10-30","qtyUsed":0.3,"paid":85000,"paidOn":"2026-10-30","id":"m1"},{"no":"MR-02","item":"Electrical boxes & conduits","trade":"Electrical","unit":"lot","task":"T-002","lead":4,"supplier":"El Nour (by sub)","qty":1,"price":40000,"orderedOn":"2026-10-19","paid":20000,"paidOn":"2026-10-19","id":"m2"},{"no":"MR-03","item":"Porcelain tiles 60x60","trade":"Flooring","unit":"m2","task":"T-008","lead":25,"supplier":"Cleopatra dealer","price":420,"id":"m3"},{"no":"MR-04","item":"Gypsum boards & studs","trade":"Gypsum Board","unit":"lot","task":"T-004","lead":3,"supplier":"Knauf dealer","qty":1,"price":160000,"orderedOn":"2026-11-01","paid":80000,"paidOn":"2026-11-01","id":"m4"},{"no":"MR-05","item":"Split AC units (6 units)","trade":"HVAC","unit":"set","task":"T-006","lead":10,"supplier":"Carrier dealer","id":"m5"}],"vos":[{"no":"VO-01","date":"2026-10-25","desc":"Add jacuzzi water supply & drainage","by":"Client","trade":"Plumbing","value":85000,"extReq":5,"status":"Submitted","id":"v1"},{"no":"VO-02","date":"2026-10-22","desc":"Extra lighting points - garden","by":"Client","trade":"Electrical","value":130000,"extReq":7,"status":"Approved","apprDate":"2026-10-28","apprValue":120000,"apprExt":7,"notes":"Approved after negotiation","id":"v2"}],"payments":[{"no":"INV-01","date":"2026-10-15","desc":"Advance payment 15%","amount":630000,"received":598500,"recvDate":"2026-10-20","id":"p1"},{"no":"INV-02","date":"2026-10-31","desc":"Progress invoice #1 (October)","amount":450000,"id":"p2"}],"costs":[{"date":"2026-10-18","cat":"Equipment","trade":"General","desc":"Scaffolding rent - month 1","paidTo":"Al-Amal Rentals","amount":12000,"paid":12000,"paidOn":"2026-10-18","id":"c1"},{"date":"2026-10-21","cat":"Subcontractor","trade":"Electrical","desc":"El Nour - advance on first fix","paidTo":"Electrical Sub - El Nour","amount":150000,"paid":100000,"paidOn":"2026-10-21","id":"c2"},{"date":"2026-10-22","cat":"Labour","trade":"Plumbing","desc":"Weekly wages - week 1","paidTo":"Plumbing Crew A","amount":45000,"paid":45000,"paidOn":"2026-10-22","id":"c3"},{"date":"2026-10-25","cat":"Transport","trade":"General","desc":"Material transport","paidTo":"Truck - Abu Ali","amount":6500,"paid":6500,"paidOn":"2026-10-25","id":"c4"},{"date":"2026-10-29","cat":"Labour","trade":"Plumbing","desc":"Weekly wages - week 2","paidTo":"Plumbing Crew A","amount":48000,"paid":48000,"paidOn":"2026-10-29","id":"c5"}],"daily":[{"date":"2026-10-24","weather":"Normal","own":8,"sub":6,"eng":1,"equip":"Scaffolding, drills","work":"GF plumbing first fix + electrical conduits","hours":0,"reason":"None","by":"Site Eng.","id":"d1"},{"date":"2026-10-25","weather":"Normal","own":9,"sub":7,"eng":1,"equip":"Scaffolding, drills","work":"Electrical conduits GF, pressure test water lines","hours":0,"reason":"None","by":"Site Eng.","id":"d2"},{"date":"2026-10-26","weather":"Normal","own":10,"sub":8,"eng":1,"equip":"Scaffolding, drills","work":"Started FF plumbing, conduits continue","hours":0,"reason":"None","by":"Site Eng.","id":"d3"},{"date":"2026-10-27","weather":"Normal","own":8,"sub":9,"eng":1,"equip":"Scaffolding, drills","work":"GF plumbing first fix + electrical conduits","issues":"Electrical boxes not delivered","hours":4,"reason":"Material shortage","issueStatus":"Open","by":"Site Eng.","id":"d4"},{"date":"2026-10-28","weather":"Normal","own":9,"sub":6,"eng":1,"equip":"Scaffolding, drills","work":"Electrical conduits GF, pressure test water lines","hours":0,"reason":"None","by":"Site Eng.","id":"d5"},{"date":"2026-10-29","weather":"Normal","own":10,"sub":7,"eng":1,"equip":"Scaffolding, drills","work":"Started FF plumbing, conduits continue","hours":0,"reason":"None","by":"Site Eng.","id":"d6"},{"date":"2026-10-31","weather":"Normal","own":8,"sub":8,"eng":1,"equip":"Scaffolding, drills","work":"GF plumbing first fix + electrical conduits","hours":0,"reason":"None","by":"Site Eng.","id":"d7"},{"date":"2026-11-01","weather":"Normal","own":9,"sub":9,"eng":1,"equip":"Scaffolding, drills","work":"Electrical conduits GF, pressure test water lines","hours":0,"reason":"None","by":"Site Eng.","id":"d8"}]},{"id":"p02","code":"P02","name":"Office Fit-out - New Cairo (SAMPLE)","client":"Delta Co.","consultant":"Delta in-house","location":"New Cairo","scope":"Finishes","eng":"Eng. Mona","status":"Active","contract":2600000,"retention":5,"terms":30,"start":"2026-11-01","handover":"2026-12-31","bMat":1100000,"bLab":350000,"bSub":500000,"bEq":40000,"bOth":60000,"tasks":[{"tid":"T-001","scope":"Finishes","trade":"Gypsum Board","desc":"Gypsum partitions","area":"Level 3","crew":"Gypsum Crew","start":"2026-11-03","dur":10,"id":"t1"},{"tid":"T-002","scope":"Finishes","trade":"False Ceiling","desc":"Ceiling grid & tiles","area":"Level 3","crew":"Gypsum Crew","start":"2026-11-24","dur":8,"id":"t2"},{"tid":"T-003","scope":"Finishes","trade":"Painting","desc":"Wall painting","area":"Level 3","crew":"Painting Crew","start":"2026-12-07","dur":8,"id":"t3"},{"tid":"T-004","scope":"Finishes","trade":"Flooring","desc":"Carpet & raised floor","area":"Level 3","crew":"Flooring Sub","start":"2026-12-15","dur":6,"id":"t4"},{"tid":"T-005","scope":"Finishes","trade":"Carpentry / Joinery","desc":"Doors & joinery installation","area":"Level 3","crew":"Carpentry Sub","start":"2026-12-22","dur":5,"id":"t5"}],"materials":[{"no":"MR-01","item":"Gypsum boards & studs","trade":"Gypsum Board","unit":"lot","task":"T-001","lead":3,"supplier":"Knauf dealer","qty":1,"price":210000,"orderedOn":"2026-10-29","qtyDel":1,"deliveredOn":"2026-11-01","qtyUsed":0,"paid":210000,"paidOn":"2026-10-29","id":"m1"},{"no":"MR-02","item":"Ceiling tiles 60x60","trade":"False Ceiling","unit":"m2","task":"T-002","lead":14,"supplier":"Armstrong dealer","price":380,"id":"m2"},{"no":"MR-03","item":"Paint (Jotun)","trade":"Painting","unit":"lot","task":"T-003","lead":7,"supplier":"Jotun dealer","id":"m3"},{"no":"MR-04","item":"Carpet tiles","trade":"Flooring","unit":"m2","task":"T-004","lead":30,"supplier":"Interface agent","price":650,"id":"m4"}],"vos":[{"no":"VO-01","date":"2026-10-30","desc":"Glass partition for meeting room","by":"Client","trade":"Aluminium","value":95000,"extReq":0,"status":"Submitted","id":"v1"}],"payments":[{"no":"INV-01","date":"2026-10-28","desc":"Advance payment 20%","amount":520000,"received":494000,"recvDate":"2026-11-01","id":"p1"}],"costs":[{"date":"2026-10-30","cat":"Transport","trade":"General","desc":"Gypsum delivery","paidTo":"Truck - Abu Ali","amount":3500,"paid":3500,"paidOn":"2026-10-30","id":"c1"}],"daily":[{"date":"2026-10-29","weather":"Normal","own":2,"sub":0,"eng":1,"equip":"Scaffolding, drills","work":"Site handover, marking partitions","hours":0,"reason":"None","by":"Site Eng.","id":"d1"}]},{"id":"p03","code":"P03","name":"Clinic - Nasr City (SAMPLE)","client":"Dr. Samir","consultant":"Medica Design","location":"Nasr City","scope":"MEP","eng":"Eng. Karim","status":"Active","contract":1900000,"retention":5,"terms":30,"start":"2026-10-20","handover":"2026-12-20","bMat":800000,"bLab":200000,"bSub":550000,"bEq":30000,"bOth":50000,"tasks":[{"tid":"T-001","scope":"MEP","trade":"HVAC","desc":"Duct installation","area":"Ground Floor","crew":"HVAC Sub - CoolTech","start":"2026-10-25","dur":15,"astart":"2026-10-27","pct":25,"id":"t1"},{"tid":"T-002","scope":"MEP","trade":"Fire Fighting","desc":"Sprinkler piping","area":"Ground Floor","crew":"Fire Fighting Sub","start":"2026-11-05","dur":10,"id":"t2"},{"tid":"T-003","scope":"MEP","trade":"Plumbing","desc":"Medical sinks - water & drainage","area":"Ground Floor","crew":"Plumbing Crew A","start":"2026-11-08","dur":6,"id":"t3"},{"tid":"T-004","scope":"MEP","trade":"Electrical","desc":"Distribution boards installation","area":"Ground Floor","crew":"Electrical Sub - El Nour","start":"2026-11-28","dur":5,"id":"t4"},{"tid":"T-005","scope":"MEP","trade":"Low Current","desc":"Nurse call & data cabling","area":"Ground Floor","crew":"Low Current Sub","start":"2026-12-01","dur":8,"id":"t5"},{"tid":"T-006","scope":"MEP","trade":"HVAC","desc":"VRF outdoor units & commissioning","area":"Roof","crew":"HVAC Sub - CoolTech","start":"2026-12-10","dur":6,"id":"t6"}],"materials":[{"no":"MR-01","item":"VRF outdoor units","trade":"HVAC","unit":"set","task":"T-006","lead":45,"supplier":"Daikin agent","price":380000,"id":"m1"},{"no":"MR-02","item":"Sprinkler heads & pipes","trade":"Fire Fighting","unit":"lot","task":"T-002","lead":7,"supplier":"Fire Pro","qty":1,"price":95000,"orderedOn":"2026-10-28","paid":50000,"paidOn":"2026-10-28","id":"m2"},{"no":"MR-03","item":"Distribution boards","trade":"Electrical","unit":"set","task":"T-004","lead":20,"supplier":"Schneider dealer","price":140000,"id":"m3"},{"no":"MR-04","item":"GI ducts & insulation","trade":"HVAC","unit":"lot","task":"T-001","lead":5,"supplier":"Duct factory","qty":1,"price":120000,"orderedOn":"2026-10-18","qtyDel":1,"deliveredOn":"2026-10-24","qtyUsed":0.4,"paid":120000,"paidOn":"2026-10-24","id":"m4"}],"vos":[{"no":"VO-01","date":"2026-10-26","desc":"Medical gas piping (oxygen)","by":"Consultant","trade":"Plumbing","value":160000,"extReq":10,"status":"Submitted","id":"v1"}],"payments":[{"no":"INV-01","date":"2026-10-20","desc":"Advance payment 20%","amount":380000,"received":361000,"recvDate":"2026-10-25","id":"p1"}],"costs":[{"date":"2026-10-27","cat":"Subcontractor","trade":"HVAC","desc":"CoolTech - advance","paidTo":"HVAC Sub - CoolTech","amount":90000,"paid":90000,"paidOn":"2026-10-27","id":"c1"},{"date":"2026-10-29","cat":"Labour","trade":"General","desc":"Helpers - weekly wages","paidTo":"Helpers","amount":9000,"paid":9000,"paidOn":"2026-10-29","id":"c2"}],"daily":[{"date":"2026-10-27","weather":"Normal","own":3,"sub":7,"eng":1,"equip":"Scaffolding, drills","work":"Duct installation corridor","hours":0,"reason":"None","by":"Site Eng.","id":"d1"},{"date":"2026-10-28","weather":"Normal","own":4,"sub":8,"eng":1,"equip":"Scaffolding, drills","work":"Duct hangers & installation rooms 1-4","hours":0,"reason":"None","by":"Site Eng.","id":"d2"},{"date":"2026-10-29","weather":"Normal","own":5,"sub":9,"eng":1,"equip":"Scaffolding, drills","work":"Duct installation rooms 5-8","hours":0,"reason":"None","by":"Site Eng.","id":"d3"},{"date":"2026-10-31","weather":"Normal","own":3,"sub":10,"eng":1,"equip":"Scaffolding, drills","work":"Duct installation corridor","hours":0,"reason":"None","by":"Site Eng.","id":"d4"},{"date":"2026-11-01","weather":"Normal","own":4,"sub":7,"eng":1,"equip":"Scaffolding, drills","work":"Duct hangers & installation rooms 1-4","issues":"Ceiling height clash with beam - waiting consultant","hours":3,"reason":"Drawings / approvals","issueStatus":"Open","by":"Site Eng.","id":"d5"}]}]};
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+const has = v => v !== undefined && v !== null && v !== "";
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const D = s => s ? Math.floor(Date.parse(s + "T00:00:00Z") / 864e5) : null;
+const S = d => new Date(d * 864e5).toISOString().slice(0, 10);
+const localToday = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`; };
+const TODAY_S = localToday(), TODAY = D(TODAY_S);
+const fd = s => { if (!s) return "—"; const [y,m,d] = String(s).split("-"); return `${+d} ${(LANG === "ar" ? MONTHS_AR : MONTHS)[+m-1]} ${y.slice(2)}`; };
+const fdn = d => d == null ? "—" : fd(S(d));
+const egp = v => { v = Math.round(v || 0); const s = Math.abs(v).toLocaleString("en-US"); return v < 0 ? `(${s})` : s; };
+const pct = v => Math.round((v || 0) * 100) + "%";
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+const TRADES = ["Plumbing","Drainage","HVAC","Electrical","Low Current","Fire Fighting","Gypsum Board","False Ceiling","Painting","Flooring","Ceramic / Porcelain","Marble","Carpentry / Joinery","Aluminium","General"];
+const SCOPES = ["MEP","Finishes"], PSCOPE = ["MEP","Finishes","MEP + Finishes"], PSTATUS = ["Not Started","Active","On Hold","Handed Over"];
+const VOST = ["Draft","Submitted","Approved","Rejected"], REQBY = ["Client","Consultant","Contractor"];
+const COSTCAT = ["Labour","Subcontractor","Equipment","Transport","Other"], WEATHER = ["Normal","Hot","Rain","Wind / Sand"];
+const REASONS = ["None","Material shortage","Drawings / approvals","Client","Labour shortage","Other trade","Weather","Other"];
+const UNITS = ["pcs","m","m2","m3","roll","bag","ton","set","lot","LS"];
+/* ---------- language ---------- */
+const AR = {
+  "Overview":"نظرة عامة","Projects":"المشروعات","Timeline":"الجدول الزمني","Crews":"الفرق","Setup":"الإعدادات",
+  "Site":"الموقع","Money":"الماليات","Mon":"الإثنين",
+  "{n} active project":"{n} مشروع جاري","{n} active projects":"{n} مشروعات جارية","all figures in EGP":"كل المبالغ بالجنيه المصري",
+  "Overdue tasks":"مهام متأخرة","Crew clashes":"تعارض الفرق","Materials to order":"خامات مطلوب طلبها","Projects missing today's report":"مشروعات بدون تقرير يومي",
+  "Received from clients":"المحصّل من العملاء","Outstanding from clients":"مستحق على العملاء","Owed to suppliers & subs":"مستحق للموردين ومقاولي الباطن",
+  "Cash position (received − paid)":"الموقف النقدي (المحصّل − المدفوع)","Needs attention":"يحتاج متابعة",
+  "Nothing needs attention. Every task, order and invoice is on time.":"لا يوجد ما يحتاج متابعة. كل المهام والطلبات والفواتير في موعدها.",
+  "See all {n}":"عرض الكل ({n})","Next {n} days":"الـ {n} يوم القادمة","No open tasks start in this window.":"لا توجد مهام تبدأ في هذه الفترة.",
+  "Good to see you":"أهلاً بك","SiteBoard keeps every project's schedule, money, materials and daily reports in one place.":"سايت بورد يجمع جدول كل مشروع وماليته وخاماته وتقاريره اليومية في مكان واحد.",
+  "No projects yet.":"لا توجد مشروعات بعد.","Add your first project":"أضف أول مشروع","Load 3 sample projects":"تحميل 3 مشروعات تجريبية",
+  "{name}: handover at risk":"{name}: التسليم في خطر","Last task ends {a}, handover {b}":"آخر مهمة تنتهي {a} والتسليم {b}",
+  "{code}: no daily report":"{code}: لا يوجد تقرير يومي","No reports yet":"لا توجد تقارير بعد","Last report {d} ({n} days ago)":"آخر تقرير {d} (منذ {n} يوم)",
+  "Invoice {no} unpaid":"الفاتورة {no} لم تُدفع","{code} · {amt} EGP · {n} days overdue":"{code} · {amt} ج.م · متأخرة {n} يوم",
+  "Variation {no} waiting {n} days":"الأمر التغييري {no} في الانتظار منذ {n} يوم",
+  "Overdue: {t}":"متأخرة: {t}","{code} · {crew} · {n} days late":"{code} · {crew} · متأخرة {n} يوم","No crew":"بدون فريق",
+  "Not started: {t}":"لم تبدأ: {t}","{code} · planned {d}":"{code} · المخطط {d}","Crew clash: {crew}":"تعارض فريق: {crew}",
+  "Order now: {i}":"اطلب الآن: {i}","{code} · last day was {a} · needed {b}":"{code} · آخر موعد كان {a} · مطلوب {b}",
+  "Late delivery: {i}":"تأخر توريد: {i}","{code} · needed {a} · {s}":"{code} · مطلوب {a} · {s}",
+  "Order this week: {i}":"اطلب هذا الأسبوع: {i}","{code} · order by {a} ({n} days left)":"{code} · اطلب قبل {a} (باقي {n} يوم)",
+  "{p} done":"{p} منجز","{n} days to handover":"{n} يوم على التسليم","Received {a} / {b}":"المحصّل {a} / {b}",
+  "← Overview":"→ نظرة عامة","← Projects":"→ المشروعات","Nothing needs attention.":"لا يوجد ما يحتاج متابعة.",
+  "All projects, EGP. Money in = client payments received; money out = costs and materials paid.":"كل المشروعات بالجنيه. الداخل = مدفوعات العملاء المحصّلة، الخارج = التكاليف والخامات المدفوعة.",
+  "By project":"حسب المشروع","Project":"المشروع","Revised contract":"العقد المعدّل","Received":"المحصّل","Outstanding":"المستحق","Cost to date":"التكلفة حتى الآن","Owed":"علينا","Profit so far":"الربح حتى الآن",
+  "Cash flow by month":"التدفق النقدي الشهري","Month":"الشهر","In":"داخل","Out":"خارج","Net":"الصافي","Running total":"الرصيد التراكمي","No payments recorded yet.":"لا توجد مدفوعات مسجلة بعد.",
+  "Current":"الحالية","All ({n})":"الكل ({n})","No projects here yet.":"لا توجد مشروعات هنا بعد.","+ Project":"+ مشروع",
+  "Summary":"الملخص","Tasks":"المهام","Materials":"الخامات","Variations":"الأوامر التغييرية","Payments":"المستخلصات","Costs":"التكاليف","Daily reports":"التقارير اليومية","Info":"البيانات",
+  "This project was deleted.":"تم حذف هذا المشروع.","{n} clash":"{n} تعارض","{n} clashes":"{n} تعارضات",
+  "Progress":"نسبة الإنجاز","Days to handover":"أيام على التسليم","+ Today's report":"+ تقرير اليوم","+ Task":"+ مهمة","+ Cost":"+ تكلفة",
+  "Schedule":"الجدول","Start":"البداية","Original handover":"التسليم الأصلي","Approved extension":"المد المعتمد","{n} days":"{n} يوم","Revised handover":"التسليم المعدّل",
+  "Forecast finish (last task)":"الانتهاء المتوقع (آخر مهمة)","Tasks done":"مهام منتهية","Late starts":"تأخر البدء",
+  "Money in (client)":"الإيرادات (العميل)","Contract value":"قيمة العقد","Approved variations":"أوامر تغييرية معتمدة","Variations waiting":"أوامر تغييرية في الانتظار",
+  "Value of work done":"قيمة الأعمال المنفذة","Invoiced":"المستخلص","Work done not yet invoiced":"أعمال منفذة لم تُستخلص","Outstanding from client":"مستحق على العميل","Overdue invoices":"فواتير متأخرة","Retention held":"ضمان أعمال محتجز",
+  "Costs & profit":"التكاليف والربح","Budget":"الميزانية","Materials (ordered)":"الخامات (المطلوبة)","Labour":"عمالة","Subcontractors":"مقاولو الباطن","Equipment":"معدات","Transport & other":"نقل وأخرى",
+  "Total cost":"إجمالي التكلفة","Budget used":"المستهلك من الميزانية","Paid out":"المدفوع","Cash position":"الموقف النقدي",
+  "Last daily report":"آخر تقرير يومي","Manpower (last report)":"العمالة (آخر تقرير)","Hours lost to delays":"ساعات ضائعة بسبب التأخير","Open site issues":"مشاكل موقع مفتوحة","Late deliveries":"توريدات متأخرة",
+  "No tasks yet. Add each activity with its crew, start date and duration in working days.":"لا توجد مهام بعد. أضف كل بند بفريقه وتاريخ بدايته ومدته بأيام العمل.",
+  "{n} d late":"متأخرة {n} يوم","for {t}":"لـ {t}","Order by {d}":"اطلب قبل {d}","Needed {d}":"مطلوب {d}","{n} days left":"باقي {n} يوم","Qty {q} {u}":"الكمية {q} {u}","On site {n}":"بالموقع {n}","{a} EGP":"{a} ج.م","To pay {a}":"للدفع {a}",
+  "No materials yet. Link each long-lead item to its task to get the last day to order.":"لا توجد خامات بعد. اربط كل خامة بمهمتها لمعرفة آخر موعد للطلب.","+ Material":"+ خامة",
+  "Submitted {a}":"المقدم {a}","Approved {a} · +{n} days":"المعتمد {a} · +{n} يوم","Waiting {n} days":"في الانتظار {n} يوم","No variation orders yet.":"لا توجد أوامر تغييرية بعد.","+ Variation":"+ أمر تغييري",
+  "Invoice":"فاتورة","Invoiced {a}":"المستخلص {a}","Net {a}":"الصافي {a}","Received {a}":"المحصّل {a}","Outstanding {a}":"المستحق {a}","Due {d}":"الاستحقاق {d}","No invoices yet.":"لا توجد مستخلصات بعد.","+ Invoice":"+ مستخلص",
+  "Labour, subcontractors, equipment and transport. Material costs come from the Materials tab.":"العمالة ومقاولو الباطن والمعدات والنقل. تكلفة الخامات تأتي من تبويب الخامات.",
+  "Balance {a}":"المتبقي {a}","No costs yet.":"لا توجد تكاليف بعد.",
+  "{n} workers ({o} own, {s} sub)":"{n} عامل ({o} ذاتي، {s} باطن)","{n} h lost · {r}":"{n} ساعة ضائعة · {r}","No daily reports yet. Add one at the end of each working day.":"لا توجد تقارير يومية بعد. أضف تقريراً في نهاية كل يوم عمل.",
+  "Code":"الكود","Client":"العميل","Consultant":"الاستشاري","Location":"الموقع","Scope":"نطاق العمل","Site engineer":"مهندس الموقع","Status":"الحالة","Retention":"ضمان الأعمال","Payment terms":"مدة السداد","Handover":"التسليم","Budget total":"إجمالي الميزانية",
+  "Edit project info":"تعديل بيانات المشروع","Delete project":"حذف المشروع",
+  "All projects, one week per column, Saturday to Friday.":"كل المشروعات، أسبوع لكل عمود، من السبت إلى الجمعة.","Open tasks":"المهام المفتوحة","Include done":"مع المنتهية",
+  "Planned / in progress":"مخطط / جاري","Today":"اليوم","No dated tasks to show.":"لا توجد مهام بتواريخ.","Task":"المهمة",
+  "Swipe sideways to see later weeks. A red “!” marks a crew clash.":"اسحب جانبياً لرؤية الأسابيع التالية. علامة “!” الحمراء تعني تعارض فريق.",
+  "Every crew and subcontractor, with their work across all projects.":"كل الفرق ومقاولي الباطن وأعمالهم في كل المشروعات.",
+  "{n} open tasks":"{n} مهام مفتوحة","{n} today":"{n} اليوم","Busy until {d}":"مشغول حتى {d}","On {p}":"في {p}",
+  "No crews yet. Add your own crews and subcontractors so tasks can be assigned and clashes found.":"لا توجد فرق بعد. أضف فرقك ومقاولي الباطن لتوزيع المهام واكتشاف التعارض.","+ Crew":"+ فريق",
+  "Working days":"أيام العمل","Weekend":"الإجازة الأسبوعية","Friday only":"الجمعة فقط","Friday & Saturday":"الجمعة والسبت","Ordering safety buffer (days)":"هامش أمان للطلب (أيام)","Look-ahead window (days)":"فترة النظر للأمام (أيام)",
+  "Public holidays, one date per line (YYYY-MM-DD). Add Eid when it's announced.":"الإجازات الرسمية، تاريخ في كل سطر (YYYY-MM-DD). أضف العيد عند إعلانه.",
+  "Language":"اللغة","Your data":"بياناتك",
+  "Your projects are saved to your private SiteBoard storage and appear on any device where you open this link signed in.":"مشروعاتك محفوظة في مساحتك الخاصة على سايت بورد وتظهر على أي جهاز تفتح منه هذا الرابط بعد تسجيل الدخول.",
+  "Your projects are saved in this browser only. Export a backup regularly.":"مشروعاتك محفوظة في هذا المتصفح فقط. صدّر نسخة احتياطية بانتظام.",
+  "Export backup":"تصدير نسخة احتياطية","Import backup":"استيراد نسخة احتياطية","Delete all data":"حذف كل البيانات","About":"عن التطبيق",
+  "SiteBoard · {p} projects · {c} crews · figures in EGP. Finish dates skip the weekend and the holidays above.":"سايت بورد · {p} مشروعات · {c} فرق · المبالغ بالجنيه. تواريخ الانتهاء تتخطى الإجازة الأسبوعية والإجازات أعلاه.",
+  "Saved on this phone only. Open SiteBoard signed in to claude.ai to keep your data safe, and export a backup from Setup now and then.":"محفوظ على هذا الهاتف فقط. افتح سايت بورد بعد تسجيل الدخول إلى claude.ai لحماية بياناتك، وصدّر نسخة احتياطية من الإعدادات من وقت لآخر.",
+  "Your saved data can't be reached yet. What you see may be out of date.":"تعذر الوصول إلى بياناتك المحفوظة حالياً. قد تكون المعروضة غير محدثة.",
+  "View only: changes can't be saved right now.":"عرض فقط: لا يمكن حفظ التغييرات الآن.",
+  "Edit":"تعديل","New":"جديد","Edit {x}":"تعديل {x}","New {x}":"إضافة {x}","Delete":"حذف","Cancel":"إلغاء","Save":"حفظ","Tap again to delete":"اضغط مرة أخرى للحذف","Tap again to confirm":"اضغط مرة أخرى للتأكيد",
+  "{f} is required.":"حقل {f} مطلوب.","Saved":"تم الحفظ","Deleted":"تم الحذف","Project added":"تمت إضافة المشروع","Project deleted":"تم حذف المشروع",
+  "Sample projects loaded. Edit or delete them any time.":"تم تحميل المشروعات التجريبية. يمكنك تعديلها أو حذفها في أي وقت.",
+  "Backup saved":"تم حفظ النسخة الاحتياطية","Backup saved to {p}":"تم حفظ النسخة الاحتياطية في {p}","Your projects are saved on this phone. Export a backup now and then so nothing is lost if the phone is lost or reset.":"مشروعاتك محفوظة على هذا الهاتف. صدّر نسخة احتياطية من وقت لآخر حتى لا تضيع البيانات إذا فُقد الهاتف أو أعيد ضبطه.","Copy this text and keep it somewhere safe":"انسخ هذا النص واحفظه في مكان آمن","Copy":"نسخ","Copied":"تم النسخ","Text selected: copy it":"تم تحديد النص: انسخه",
+  "That file isn't a SiteBoard backup.":"هذا الملف ليس نسخة احتياطية من سايت بورد.","Backup restored: {n} projects":"تمت الاستعادة: {n} مشروعات","All data deleted":"تم حذف كل البيانات",
+  "Your saved data can't be reached right now. Changes won't be saved.":"تعذر الوصول إلى بياناتك المحفوظة. لن يتم حفظ التغييرات.",
+  "This browser isn't saving data. Export a backup from Setup.":"هذا المتصفح لا يحفظ البيانات. صدّر نسخة احتياطية من الإعدادات.",
+  "Not saved: your data can't be reached right now.":"لم يتم الحفظ: تعذر الوصول إلى بياناتك الآن.",
+  "This project is getting very large. Export a backup soon.":"هذا المشروع أصبح كبيراً جداً. صدّر نسخة احتياطية قريباً.",
+  "You can view this app but not save to it. Ask the owner for Contributor access.":"يمكنك عرض التطبيق دون الحفظ. اطلب من المالك صلاحية مساهم.",
+  "Couldn't save. Check your connection and try again.":"تعذر الحفظ. تحقق من الاتصال وحاول مرة أخرى.","Couldn't delete. Try again.":"تعذر الحذف. حاول مرة أخرى.",
+  "Loading your projects…":"جاري تحميل مشروعاتك…",
+  // form titles + labels
+  "project":"مشروع","task":"مهمة","material":"خامة","variation order":"أمر تغييري","client invoice":"مستخلص عميل","cost":"تكلفة","daily report":"تقرير يومي","crew / subcontractor":"فريق / مقاول باطن",
+  "Project name":"اسم المشروع","Contract value (EGP)":"قيمة العقد (ج.م)","Retention %":"نسبة ضمان الأعمال %","Client pays within (days)":"العميل يسدد خلال (أيام)","Start date":"تاريخ البداية","Handover date":"تاريخ التسليم","Budget (EGP)":"الميزانية (ج.م)",
+  "Task ID":"كود المهمة","Trade":"البند","Floor / area":"الدور / المنطقة","Crew / subcontractor":"الفريق / مقاول الباطن","Planned start":"البداية المخططة","Duration (work days)":"المدة (أيام عمل)","Actual start":"البداية الفعلية","Actual finish":"الانتهاء الفعلي","% complete (0–100)":"نسبة الإنجاز (0–100)","Notes":"ملاحظات",
+  "Item / material":"الصنف / الخامة","Request no.":"رقم الطلب","Needed for task":"مطلوبة لمهمة","Needed on site (if no task)":"مطلوبة بالموقع (بدون مهمة)","Lead time (days)":"مدة التوريد (أيام)","Supplier":"المورد","Quantity":"الكمية","Unit":"الوحدة","Unit price (EGP)":"سعر الوحدة (ج.م)","Ordered on":"تاريخ الطلب","Qty delivered":"الكمية الموردة","Delivered on":"تاريخ التوريد","Qty used":"الكمية المستخدمة","Amount paid (EGP)":"المبلغ المدفوع (ج.م)","Paid on":"تاريخ الدفع",
+  "VO no.":"رقم الأمر","Date submitted":"تاريخ التقديم","Description":"الوصف","Requested by":"مطلوب من","Submitted value (EGP)":"القيمة المقدمة (ج.م)","Extension asked (days)":"المد المطلوب (أيام)","Approved on":"تاريخ الاعتماد","Approved value (EGP)":"القيمة المعتمدة (ج.م)","Approved extension (days)":"المد المعتمد (أيام)",
+  "Invoice no.":"رقم المستخلص","Invoice date":"تاريخ المستخلص","Description / period":"الوصف / الفترة","Amount invoiced (EGP)":"قيمة المستخلص (ج.م)","Amount received (EGP)":"المبلغ المحصّل (ج.م)","Date received":"تاريخ التحصيل",
+  "Date":"التاريخ","Category":"التصنيف","Paid to":"مدفوع إلى","Amount (EGP)":"المبلغ (ج.م)",
+  "Weather":"الطقس","Own labour":"عمالة ذاتية","Subcontractor labour":"عمالة مقاول الباطن","Engineers / supervisors":"مهندسون / مشرفون","Equipment on site":"المعدات بالموقع","Work done today":"الأعمال المنفذة اليوم","Problems / issues":"المشاكل","Hours lost":"ساعات ضائعة","Delay reason":"سبب التأخير","Issue status":"حالة المشكلة","Reported by":"بواسطة",
+  "Name":"الاسم","Type":"النوع","Foreman / contact":"المسؤول","Phone":"الهاتف",
+  // values
+  "Done":"منتهية","Overdue":"متأخرة","Late Start":"تأخر البدء","In Progress":"جارية","Not Started":"لم يبدأ","AT RISK":"في خطر","Delays":"تأخيرات","On Track":"في الموعد",
+  "LATE TO ORDER":"تأخر الطلب","LATE DELIVERY":"تأخر التوريد","ORDER NOW":"اطلب الآن","Delivered":"تم التوريد","Ordered":"تم الطلب","Part Delivered":"توريد جزئي","Planned":"مخطط","Set dates":"حدد التواريخ",
+  "Draft":"مسودة","Submitted":"مقدم","Approved":"معتمد","Rejected":"مرفوض","Paid":"مدفوع","Part Paid":"مدفوع جزئياً","Unpaid":"غير مدفوع","Not Due":"لم يستحق","Open":"مفتوحة","Closed":"مغلقة",
+  "Active":"جاري","On Hold":"متوقف","Handed Over":"تم التسليم","CLASH":"تعارض","Busy":"مشغول","Free":"متاح",
+  "Plumbing":"سباكة","Drainage":"صرف","HVAC":"تكييف وتهوية","Electrical":"كهرباء","Low Current":"تيار خفيف","Fire Fighting":"إطفاء حريق","Gypsum Board":"جبس بورد","False Ceiling":"أسقف معلقة","Painting":"دهانات","Flooring":"أرضيات","Ceramic / Porcelain":"سيراميك / بورسلين","Marble":"رخام","Carpentry / Joinery":"نجارة","Aluminium":"ألوميتال","General":"عام",
+  "MEP":"كهروميكانيكال","Finishes":"تشطيبات","MEP + Finishes":"كهروميكانيكال + تشطيبات","Contractor":"المقاول",
+  "Subcontractor":"مقاول باطن","Transport":"نقل","Other":"أخرى","Own Crew":"فريق ذاتي",
+  "Normal":"عادي","Hot":"حار","Rain":"مطر","Wind / Sand":"رياح / أتربة","None":"لا يوجد","Material shortage":"نقص خامات","Drawings / approvals":"رسومات / اعتمادات","Labour shortage":"نقص عمالة","Other trade":"بند آخر"
+};
+const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const DAYS = { en: ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], ar: ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"] };
+let LANG = "en";
+try { LANG = localStorage.getItem("siteboard-lang") || ((navigator.language || "").toLowerCase().startsWith("ar") ? "ar" : "en"); } catch (e) {}
+const t = (s, v) => String((LANG === "ar" && AR[s]) || s).replace(/\{(\w+)\}/g, (m, k) => v && v[k] !== undefined ? v[k] : m);
+const tx = t;
+function applyLang() {
+  document.documentElement.lang = LANG; document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+  const b = document.getElementById("langBtn"); if (b) b.textContent = LANG === "ar" ? "English" : "عربي";
+  document.querySelectorAll("nav.tabs a span").forEach(sp => { sp.dataset.en = sp.dataset.en || sp.textContent; sp.textContent = t(sp.dataset.en); });
+}
+function setLang(l) { LANG = l; try { localStorage.setItem("siteboard-lang", l); } catch (e) {} applyLang(); render(); }
+
+const DEFAULT_SETTINGS = { weekend: "fri", buffer: 3, look: 14, holidays: ["2027-01-07","2027-01-25","2027-04-25","2027-05-01","2027-06-30","2027-07-23"] };
+
+/* ---------- state + storage ---------- */
+let state = { settings: clone(DEFAULT_SETTINGS), crews: [], projects: [] };
+let loaded = false;
+const LS_KEY = "siteboard-v1";
+const IS_APP = !!(window.Android && typeof window.Android.saveFile === "function");
+const store = {
+  mode: "loading", col: null, queues: {}, timer: null, stale: false, readonly: false,
+  async init() {
+    let db = null, user = null, id = null;
+    try {
+      if (!IS_APP && window.claude && typeof window.claude.use === "function") {
+        [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+        id = user ? await user.id() : null;
+      }
+    } catch (e) { db = null; }
+    if (db && id) {
+      this.mode = "cloud";
+      this.col = db.collection("data/users/" + id);
+      this.timer = setTimeout(() => { this.stale = true; render(); }, 10000);
+      this.col.onSnapshot(snap => {
+        const next = { settings: clone(DEFAULT_SETTINGS), crews: [], projects: [] };
+        snap.docs.forEach(d => {
+          const v = d.data(); if (!v) return;
+          if (d.id === "settings") next.settings = Object.assign(clone(DEFAULT_SETTINGS), v);
+          else if (d.id === "crews") next.crews = Array.isArray(v.list) ? clone(v.list) : [];
+          else if (d.id.startsWith("p-")) next.projects.push(clone(v));
+        });
+        next.projects.sort((a, b) => String(a.code).localeCompare(String(b.code)));
+        state = next;
+        if (!snap.metadata.fromCache) { clearTimeout(this.timer); this.stale = false; }
+        loaded = true; render();
+      }, err => {
+        clearTimeout(this.timer); this.stale = false;
+        this.readonly = true; loaded = true;
+        toast(t("Your saved data can't be reached right now. Changes won't be saved."));
+        render();
+      });
+    } else {
+      this.mode = "local";
+      try { const raw = localStorage.getItem(LS_KEY); if (raw) { const v = JSON.parse(raw); state = Object.assign({ settings: clone(DEFAULT_SETTINGS), crews: [], projects: [] }, v); } } catch (e) {}
+      loaded = true; render();
+    }
+  },
+  saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { toast(t("This browser isn't saving data. Export a backup from Setup.")); } },
+  write(key, data) {
+    if (this.readonly) { toast(t("Not saved: your data can't be reached right now.")); return Promise.resolve(); }
+    if (this.mode === "local") { this.saveLocal(); return Promise.resolve(); }
+    if (JSON.stringify(data).length > 240000) toast(t("This project is getting very large. Export a backup soon."));
+    const run = () => this.col.doc(key).set(data).catch(e => {
+      if (e && e.code === "unavailable") return new Promise(r => setTimeout(r, 800 + Math.random() * 800)).then(() => this.col.doc(key).set(data));
+      throw e;
+    }).catch(e => {
+      if (e && e.code === "invalid_argument") { this.readonly = true; toast(t("You can view this app but not save to it. Ask the owner for Contributor access.")); render(); }
+      else toast(t("Couldn't save. Check your connection and try again."));
+    });
+    this.queues[key] = (this.queues[key] || Promise.resolve()).then(run);
+    return this.queues[key];
+  },
+  remove(key) {
+    if (this.mode === "local") { this.saveLocal(); return Promise.resolve(); }
+    this.queues[key] = (this.queues[key] || Promise.resolve()).then(() => this.col.doc(key).delete()).catch(() => toast(t("Couldn't delete. Try again.")));
+    return this.queues[key];
+  }
+};
+const saveProject = p => { compute(); render(); return store.write("p-" + p.id, p); };
+const saveCrews = () => { compute(); render(); return store.write("crews", { list: state.crews }); };
+const saveSettings = () => { compute(); render(); return store.write("settings", state.settings); };
+const proj = id => state.projects.find(p => p.id === id);
+
+/* ---------- calculations ---------- */
+let HOL = new Set(), C = { p: {}, tasks: [], mats: [] };
+function isWork(d) {
+  const w = new Date(d * 864e5).getUTCDay();
+  if (w === 5) return false;
+  if (w === 6 && state.settings.weekend === "frisat") return false;
+  return !HOL.has(d);
+}
+function finishOf(t) {
+  if (!t.start || !num(t.dur)) return null;
+  let d = D(t.start), n = Math.max(1, Math.round(num(t.dur))) - 1;
+  while (n > 0) { d++; if (isWork(d)) n--; }
+  return d;
+}
+function taskCalc(t) {
+  const fin = finishOf(t), done = num(t.pct) >= 100 || !!t.afinish;
+  let st = "Not Started";
+  if (done) st = "Done";
+  else if (fin != null && fin < TODAY) st = "Overdue";
+  else if (t.astart) st = "In Progress";
+  else if (t.start && D(t.start) < TODAY) st = "Late Start";
+  let late = 0;
+  if (fin != null) late = done ? (t.afinish ? Math.max(0, D(t.afinish) - fin) : 0) : Math.max(0, TODAY - fin);
+  return { fin, st, late, eff: done ? 1 : Math.min(1, num(t.pct) / 100), clash: false, clashWith: [] };
+}
+function matCalc(p, m, buffer) {
+  let needed = m.neededManual || null;
+  if (!needed && m.task) { const t = (p.tasks || []).find(x => x.tid === m.task); if (t && t.start) needed = t.start; }
+  const nd = D(needed), orderBy = (nd != null && has(m.lead)) ? nd - num(m.lead) - buffer : null;
+  const total = has(m.qty) && has(m.price) ? num(m.qty) * num(m.price) : 0;
+  let st = "Planned";
+  if (m.deliveredOn) st = (num(m.qty) > 0 && num(m.qtyDel) < num(m.qty)) ? "Part Delivered" : "Delivered";
+  else if (m.orderedOn) st = (nd != null && TODAY > nd) ? "LATE DELIVERY" : "Ordered";
+  else if (orderBy == null) st = "Set dates";
+  else if (TODAY > orderBy) st = "LATE TO ORDER";
+  else if (orderBy - TODAY <= 7) st = "ORDER NOW";
+  const left = (orderBy != null && !m.orderedOn && !m.deliveredOn) ? orderBy - TODAY : null;
+  return { needed: nd, orderBy, total, st, left, onSite: has(m.qtyDel) ? num(m.qtyDel) - num(m.qtyUsed) : null,
+           toPay: m.orderedOn ? total - num(m.paid) : 0 };
+}
+function payCalc(p, y) {
+  const ret = num(y.amount) * num(p.retention) / 100, net = num(y.amount) - ret;
+  const due = y.date ? D(y.date) + num(p.terms) : null, out = net - num(y.received);
+  let st = "Not Due";
+  if (out <= 0) st = "Paid"; else if (due != null && TODAY > due) st = "Overdue"; else if (num(y.received) > 0) st = "Part Paid";
+  return { ret, net, due, out, st, daysOver: st === "Overdue" ? TODAY - due : 0 };
+}
+function compute() {
+  HOL = new Set((state.settings.holidays || []).map(D).filter(x => x != null));
+  const buffer = num(state.settings.buffer);
+  C = { p: {}, tasks: [], mats: [] };
+  for (const p of state.projects) {
+    const tk = (p.tasks || []).map(t => ({ t, ...taskCalc(t), p }));
+    const mt = (p.materials || []).map(m => ({ m, ...matCalc(p, m, buffer), p }));
+    const py = (p.payments || []).map(y => ({ y, ...payCalc(p, y) }));
+    C.tasks.push(...tk); C.mats.push(...mt);
+    C.p[p.id] = { tk, mt, py };
+  }
+  // crew clashes across all projects
+  const open = C.tasks.filter(x => x.t.crew && x.st !== "Done" && x.t.start && x.fin != null);
+  for (let i = 0; i < open.length; i++) for (let j = i + 1; j < open.length; j++) {
+    const a = open[i], b = open[j];
+    if (a.t.crew === b.t.crew && D(a.t.start) <= b.fin && D(b.t.start) <= a.fin) {
+      a.clash = b.clash = true; a.clashWith.push(b); b.clashWith.push(a);
+    }
+  }
+  for (const p of state.projects) {
+    const c = C.p[p.id], tk = c.tk;
+    const sumDur = tk.reduce((s, x) => s + num(x.t.dur), 0);
+    const progress = sumDur ? tk.reduce((s, x) => s + num(x.t.dur) * x.eff, 0) / sumDur : 0;
+    const vos = p.vos || [], costs = p.costs || [], daily = p.daily || [];
+    const ext = vos.filter(v => v.status === "Approved").reduce((s, v) => s + num(v.apprExt), 0);
+    const ho = D(p.handover), rev = ho != null ? ho + ext : null;
+    const forecast = tk.reduce((m, x) => x.fin != null && (m == null || x.fin > m) ? x.fin : m, null);
+    const overdue = tk.filter(x => x.st === "Overdue").length, late = tk.filter(x => x.st === "Late Start").length;
+    const clashes = tk.filter(x => x.clash).length;
+    let sched = "On Track";
+    if (p.status === "Handed Over") sched = "Handed Over";
+    else if (rev != null && forecast != null && forecast > rev) sched = "AT RISK";
+    else if (overdue + late > 0) sched = "Delays";
+    const voAppr = vos.filter(v => v.status === "Approved").reduce((s, v) => s + num(v.apprValue), 0);
+    const revised = num(p.contract) + voAppr;
+    const earned = revised * progress;
+    const invoiced = c.py.reduce((s, x) => s + num(x.y.amount), 0), received = c.py.reduce((s, x) => s + num(x.y.received), 0);
+    const outstanding = c.py.reduce((s, x) => s + x.out, 0), retention = c.py.reduce((s, x) => s + x.ret, 0);
+    const overdueInv = c.py.filter(x => x.st === "Overdue").reduce((s, x) => s + x.out, 0);
+    const costBy = cat => costs.filter(k => k.cat === cat).reduce((s, k) => s + num(k.amount), 0);
+    const mat = c.mt.filter(x => x.m.orderedOn).reduce((s, x) => s + x.total, 0);
+    const lab = costBy("Labour"), sub = costBy("Subcontractor"), eq = costBy("Equipment");
+    const oth = costs.reduce((s, k) => s + num(k.amount), 0) - lab - sub - eq;
+    const total = mat + lab + sub + eq + oth;
+    const budget = ["bMat","bLab","bSub","bEq","bOth"].reduce((s, k) => s + num(p[k]), 0);
+    const paidOut = costs.reduce((s, k) => s + num(k.paid), 0) + (p.materials || []).reduce((s, m) => s + num(m.paid), 0);
+    const owed = costs.reduce((s, k) => s + (num(k.amount) - num(k.paid)), 0) + c.mt.reduce((s, x) => s + x.toPay, 0);
+    const lastR = daily.reduce((m, r) => r.date && (m == null || D(r.date) > m) ? D(r.date) : m, null);
+    const manpower = lastR == null ? 0 : daily.filter(r => D(r.date) === lastR).reduce((s, r) => s + num(r.own) + num(r.sub), 0);
+    Object.assign(c, {
+      progress, ext, rev, forecast, overdue, late, clashes, sched,
+      daysTo: rev != null ? rev - TODAY : null, done: tk.filter(x => x.st === "Done").length,
+      voAppr, revised, voPend: vos.filter(v => v.status === "Submitted").length,
+      voPendVal: vos.filter(v => v.status === "Submitted").reduce((s, v) => s + num(v.value), 0),
+      earned, invoiced, received, outstanding, retention, overdueInv, notInvoiced: Math.max(0, earned - invoiced),
+      mat, lab, sub, eq, oth, total, budget, budgetUsed: budget ? total / budget : 0, paidOut, owed,
+      cash: received - paidOut, profit: earned - total,
+      lastR, daysSince: lastR == null ? null : TODAY - lastR, manpower,
+      hours: daily.reduce((s, r) => s + num(r.hours), 0), issues: daily.filter(r => r.issueStatus === "Open").length,
+      toOrder: c.mt.filter(x => x.st === "ORDER NOW" || x.st === "LATE TO ORDER").length,
+      lateDel: c.mt.filter(x => x.st === "LATE DELIVERY").length
+    });
+  }
+}
+const active = () => state.projects.filter(p => p.status === "Active");
+const missingReport = p => p.status === "Active" && (C.p[p.id].daysSince == null || C.p[p.id].daysSince > 1);
+
+/* ---------- small renderers ---------- */
+const CHIP = { "Done":"ok","Overdue":"bad","Late Start":"warn","In Progress":"info","AT RISK":"bad","Delays":"warn","On Track":"ok",
+  "LATE TO ORDER":"bad","LATE DELIVERY":"bad","ORDER NOW":"warn","Delivered":"ok","Ordered":"info","Part Delivered":"info",
+  "Approved":"ok","Submitted":"warn","Rejected":"bad","Paid":"ok","Part Paid":"info","Unpaid":"bad","Open":"bad","Closed":"ok",
+  "Active":"info","Handed Over":"ok","On Hold":"warn" };
+const chip = (txt, cls) => txt ? `<span class="chip ${cls ?? CHIP[txt] ?? ""}">${esc(t(txt))}</span>` : "";
+const bar = v => `<div class="bar"><i style="width:${Math.max(0, Math.min(100, Math.round(v * 100)))}%"></i></div>`;
+const empty = (msg) => `<div class="empty">${msg}</div>`;
+function noteBar() {
+  let s = "";
+  if (store.mode === "local" && !IS_APP) s += `<div class="note">${t("Saved on this phone only. Open SiteBoard signed in to claude.ai to keep your data safe, and export a backup from Setup now and then.")}</div>`;
+  if (store.stale) s += `<div class="note">${t("Your saved data can't be reached yet. What you see may be out of date.")}</div>`;
+  if (store.readonly) s += `<div class="note">${t("View only: changes can't be saved right now.")}</div>`;
+  return s;
+}
+function tile(label, val, cls, go, money) {
+  return `<button class="tile ${cls || ""} ${money ? "money" : ""}" data-go="${go}"><div class="lab">${esc(t(label))}</div><div class="val">${val}</div></button>`;
+}
+function taskCard(x, showProj) {
+  const t = x.t, tr = (a, b) => tx(a, b);
+  return `<button class="card" data-edit="task" data-pid="${x.p.id}" data-id="${t.id}">
+    <div class="row"><div><div class="code">${showProj ? esc(x.p.code) + " · " : ""}${esc(t.tid || "")} · ${esc(tr(t.trade))}</div><div class="ttl">${esc(t.desc)}</div></div>
+    <div class="chips">${chip(x.st)}${x.clash ? chip("CLASH", "bad") : ""}</div></div>
+    <div class="meta"><span>${esc(t.area || "")}</span><span>${esc(t.crew || tr("No crew"))}</span><span class="num" dir="ltr">${fd(t.start)} → ${fdn(x.fin)}</span>${x.late ? `<span class="num" style="color:var(--bad)">${tr("{n} d late", { n: x.late })}</span>` : ""}</div>
+    ${bar(x.eff)}</button>`;
+}
+
+/* ---------- views ---------- */
+function viewHome() {
+  const ps = state.projects;
+  if (!ps.length) return `<h1>${t("Good to see you")}</h1><p class="sub">${t("SiteBoard keeps every project's schedule, money, materials and daily reports in one place.")}</p>
+    ${empty(`${t("No projects yet.")}<div class="btns" style="justify-content:center"><button class="btn primary" data-act="newProject">${t("Add your first project")}</button><button class="btn" data-act="loadSample">${t("Load 3 sample projects")}</button></div>`)}`;
+  const act = active(), sum = k => act.reduce((s, p) => s + C.p[p.id][k], 0);
+  const overdue = C.tasks.filter(x => x.st === "Overdue").length, clash = C.tasks.filter(x => x.clash).length;
+  const toOrder = C.mats.filter(x => x.st === "ORDER NOW" || x.st === "LATE TO ORDER").length;
+  const missing = ps.filter(missingReport).length;
+  let h = `<h1>${t("Overview")}</h1><p class="sub">${t(act.length === 1 ? "{n} active project" : "{n} active projects", { n: act.length })} · ${t("all figures in EGP")}</p>
+  <h2>${t("Site")}</h2><div class="tiles">
+    ${tile("Overdue tasks", overdue, overdue ? "bad" : "ok", "#alerts")}
+    ${tile("Crew clashes", clash, clash ? "bad" : "ok", "#crews")}
+    ${tile("Materials to order", toOrder, toOrder ? "warn" : "ok", "#alerts")}
+    ${tile("Projects missing today's report", missing, missing ? "warn" : "ok", "#alerts")}
+  </div>
+  <h2>${t("Money")}</h2><div class="tiles">
+    ${tile("Received from clients", egp(sum("received")), "ok", "#money", 1)}
+    ${tile("Outstanding from clients", egp(sum("outstanding")), "warn", "#money", 1)}
+    ${tile("Owed to suppliers & subs", egp(sum("owed")), "bad", "#money", 1)}
+    ${tile("Cash position (received − paid)", egp(sum("cash")), sum("cash") < 0 ? "bad" : "", "#money", 1)}
+  </div>`;
+  const al = alerts();
+  h += `<h2 id="alerts">${t("Needs attention")} <span class="count">${al.length}</span></h2>`;
+  h += al.length ? `<div class="list">${al.slice(0, 12).map(alertCard).join("")}</div>` : empty(t("Nothing needs attention. Every task, order and invoice is on time."));
+  if (al.length > 12) h += `<div class="btns"><a class="btn" href="#alerts-all">${t("See all {n}", { n: al.length })}</a></div>`;
+  h += `<h2>${t("Projects")}</h2><div class="list">${ps.map(projCard).join("")}</div>`;
+  const look = num(state.settings.look);
+  const next = C.tasks.filter(x => x.st !== "Done" && x.t.start && D(x.t.start) <= TODAY + look).sort((a, b) => D(a.t.start) - D(b.t.start));
+  h += `<h2>${t("Next {n} days", { n: look })} <span class="count">${next.length}</span></h2>`;
+  h += next.length ? `<div class="list">${next.map(x => taskCard(x, true)).join("")}</div>` : empty(t("No open tasks start in this window."));
+  return h;
+}
+function alerts() {
+  const a = [];
+  for (const p of state.projects) {
+    const c = C.p[p.id];
+    if (c.sched === "AT RISK") a.push({ s: 3, t: t("{name}: handover at risk", { name: p.name }), sub: t("Last task ends {a}, handover {b}", { a: fdn(c.forecast), b: fdn(c.rev) }), go: `#p-${p.id}-tasks` });
+    if (missingReport(p)) a.push({ s: 2, t: t("{code}: no daily report", { code: p.code }), sub: c.lastR == null ? t("No reports yet") : t("Last report {d} ({n} days ago)", { d: fdn(c.lastR), n: c.daysSince }), go: `#p-${p.id}-daily` });
+    for (const x of c.py) if (x.st === "Overdue") a.push({ s: 3, t: t("Invoice {no} unpaid", { no: x.y.no || "" }), sub: t("{code} · {amt} EGP · {n} days overdue", { code: p.code, amt: egp(x.out), n: x.daysOver }), go: `#p-${p.id}-payments` });
+    for (const v of p.vos || []) if (v.status === "Submitted" && v.date && TODAY - D(v.date) > 7) a.push({ s: 1, t: t("Variation {no} waiting {n} days", { no: v.no || "", n: TODAY - D(v.date) }), sub: `${p.code} · ${v.desc || ""} · ${t("{a} EGP", { a: egp(v.value) })}`, go: `#p-${p.id}-vos` });
+  }
+  for (const x of C.tasks) {
+    if (x.st === "Overdue") a.push({ s: 3, t: t("Overdue: {t}", { t: x.t.desc }), sub: t("{code} · {crew} · {n} days late", { code: x.p.code, crew: x.t.crew || t("No crew"), n: x.late }), go: `#p-${x.p.id}-tasks` });
+    else if (x.st === "Late Start") a.push({ s: 2, t: t("Not started: {t}", { t: x.t.desc }), sub: t("{code} · planned {d}", { code: x.p.code, d: fd(x.t.start) }), go: `#p-${x.p.id}-tasks` });
+  }
+  const seen = new Set();
+  for (const x of C.tasks) if (x.clash) {
+    const key = x.t.crew; if (seen.has(key)) continue; seen.add(key);
+    const group = C.tasks.filter(y => y.clash && y.t.crew === key);
+    a.push({ s: 3, t: t("Crew clash: {crew}", { crew: key }), sub: group.map(y => `${y.p.code} ${y.t.tid || ""} (${fd(y.t.start)}–${fdn(y.fin)})`).join(" · "), go: "#crews" });
+  }
+  for (const x of C.mats) {
+    if (x.st === "LATE TO ORDER") a.push({ s: 3, t: t("Order now: {i}", { i: x.m.item }), sub: t("{code} · last day was {a} · needed {b}", { code: x.p.code, a: fdn(x.orderBy), b: fdn(x.needed) }), go: `#p-${x.p.id}-materials` });
+    else if (x.st === "LATE DELIVERY") a.push({ s: 3, t: t("Late delivery: {i}", { i: x.m.item }), sub: t("{code} · needed {a} · {s}", { code: x.p.code, a: fdn(x.needed), s: x.m.supplier || "" }), go: `#p-${x.p.id}-materials` });
+    else if (x.st === "ORDER NOW") a.push({ s: 2, t: t("Order this week: {i}", { i: x.m.item }), sub: t("{code} · order by {a} ({n} days left)", { code: x.p.code, a: fdn(x.orderBy), n: x.left }), go: `#p-${x.p.id}-materials` });
+  }
+  return a.sort((x, y) => y.s - x.s);
+}
+const alertCard = a => `<a class="card alert s${a.s}" href="${a.go}" style="text-decoration:none;color:inherit"><div class="ttl">${esc(a.t)}</div><div class="meta">${esc(a.sub)}</div></a>`;
+function projCard(p) {
+  const c = C.p[p.id];
+  return `<a class="card" href="#p-${p.id}" style="text-decoration:none;color:inherit">
+    <div class="row"><div><div class="code">${esc(p.code)} · ${esc(p.location || "")}</div><div class="ttl">${esc(p.name)}</div></div>
+    <div class="chips">${chip(p.status)}${p.status === "Active" ? chip(c.sched) : ""}</div></div>
+    ${bar(c.progress)}
+    <div class="meta"><span class="num">${t("{p} done", { p: pct(c.progress) })}</span><span class="num">${c.daysTo != null && p.status !== "Handed Over" ? t("{n} days to handover", { n: c.daysTo }) : ""}</span><span class="num">${t("Received {a} / {b}", { a: egp(c.received), b: egp(c.revised) })}</span></div></a>`;
+}
+function viewAlertsAll() { const al = alerts(); return `<a class="back" href="#home">${t("← Overview")}</a><h1>${t("Needs attention")}</h1><div class="list" style="margin-top:12px">${al.map(alertCard).join("") || empty(t("Nothing needs attention."))}</div>`; }
+function viewMoney() {
+  const months = {};
+  const add = (d, k, v) => { if (!d || !v) return; const m = d.slice(0, 7); months[m] = months[m] || { in: 0, out: 0 }; months[m][k] += num(v); };
+  for (const p of state.projects) {
+    (p.payments || []).forEach(y => add(y.recvDate, "in", y.received));
+    (p.costs || []).forEach(k => add(k.paidOn, "out", k.paid));
+    (p.materials || []).forEach(m => add(m.paidOn, "out", m.paid));
+  }
+  const keys = Object.keys(months).sort(); let cum = 0;
+  const rows = keys.map(k => { const v = months[k]; cum += v.in - v.out; return { k, ...v, net: v.in - v.out, cum }; }).reverse();
+  let h = `<a class="back" href="#home">${t("← Overview")}</a><h1>${t("Money")}</h1><p class="sub">${t("All projects, EGP. Money in = client payments received; money out = costs and materials paid.")}</p>
+  <h2>${t("By project")}</h2><div class="tablebox"><table class="cf"><tr><th>${t("Project")}</th><th>${t("Revised contract")}</th><th>${t("Received")}</th><th>${t("Outstanding")}</th><th>${t("Cost to date")}</th><th>${t("Owed")}</th><th>${t("Profit so far")}</th></tr>
+  ${state.projects.map(p => { const c = C.p[p.id]; return `<tr><td>${esc(p.code)}</td><td>${egp(c.revised)}</td><td>${egp(c.received)}</td><td>${egp(c.outstanding)}</td><td>${egp(c.total)}</td><td>${egp(c.owed)}</td><td class="${c.profit < 0 ? "neg" : ""}">${egp(c.profit)}</td></tr>`; }).join("")}</table></div>
+  <h2>${t("Cash flow by month")}</h2>`;
+  h += rows.length ? `<div class="tablebox"><table class="cf"><tr><th>${t("Month")}</th><th>${t("In")}</th><th>${t("Out")}</th><th>${t("Net")}</th><th>${t("Running total")}</th></tr>
+    ${rows.map(r => { const [y, m] = r.k.split("-"); return `<tr><td>${(LANG === "ar" ? MONTHS_AR : MONTHS)[+m - 1]} ${y}</td><td>${egp(r.in)}</td><td>${egp(r.out)}</td><td class="${r.net < 0 ? "neg" : ""}">${egp(r.net)}</td><td class="${r.cum < 0 ? "neg" : ""}">${egp(r.cum)}</td></tr>`; }).join("")}</table></div>` : empty(t("No payments recorded yet."));
+  return h;
+}
+function viewProjects() {
+  const f = ui.projFilter || "active";
+  const list = state.projects.filter(p => f === "all" || p.status === "Active" || p.status === "Not Started");
+  return `<h1>${t("Projects")}</h1><div class="toggle" style="margin-top:10px"><button data-pf="active" class="${f === "active" ? "on" : ""}">${t("Current")}</button><button data-pf="all" class="${f === "all" ? "on" : ""}">${t("All ({n})", { n: state.projects.length })}</button></div>
+    ${list.length ? `<div class="list">${list.map(projCard).join("")}</div>` : empty(`${t("No projects here yet.")}<div class="btns" style="justify-content:center"><button class="btn" data-act="loadSample">${t("Load 3 sample projects")}</button></div>`)}
+    ${fab("+ Project", "newProject")}`;
+}
+const fab = (label, act) => store.readonly ? "" : `<button class="fab" data-act="${act}">${t(label)}</button>`;
+const SUBS = [["summary","Summary"],["tasks","Tasks"],["materials","Materials"],["vos","Variations"],["payments","Payments"],["costs","Costs"],["daily","Daily reports"],["info","Info"]];
+function viewProject(pid, sub) {
+  const p = proj(pid); if (!p) return `<a class="back" href="#projects">${t("← Projects")}</a>${empty(t("This project was deleted."))}`;
+  const c = C.p[pid]; sub = sub || "summary";
+  let h = `<a class="back" href="#projects">${t("← Projects")}</a>
+    <div class="code">${esc(p.code)} · ${esc(t(p.scope || ""))} · ${esc(p.client || "")}</div><h1>${esc(p.name)}</h1>
+    <div class="chips" style="justify-content:flex-start">${chip(p.status)}${p.status === "Active" ? chip(c.sched) : ""}${c.clashes ? chip(t(c.clashes > 1 ? "{n} clashes" : "{n} clash", { n: c.clashes }), "bad") : ""}</div>
+    <nav class="seg">${SUBS.map(([k, l]) => `<a href="#p-${pid}-${k}" class="${k === sub ? "on" : ""}">${t(l)}</a>`).join("")}</nav>`;
+  const R = (k, l, v, neg) => `<dt>${t(l)}</dt><dd class="${neg ? "neg" : ""}">${v}</dd>`;
+  if (sub === "summary") {
+    h += `<div class="tiles" style="margin-top:12px">
+      ${tile("Progress", pct(c.progress), "", `#p-${pid}-tasks`)}${tile("Days to handover", c.daysTo ?? "—", c.sched === "AT RISK" ? "bad" : "", `#p-${pid}-tasks`)}
+      ${tile("Overdue tasks", c.overdue, c.overdue ? "bad" : "ok", `#p-${pid}-tasks`)}${tile("Profit so far", egp(c.profit), c.profit < 0 ? "bad" : "ok", `#p-${pid}-costs`, 1)}</div>
+      <div class="btns">${store.readonly ? "" : `<button class="btn primary" data-act="todayReport" data-pid="${pid}">${t("+ Today's report")}</button><button class="btn" data-act="add" data-kind="task" data-pid="${pid}">${t("+ Task")}</button><button class="btn" data-act="add" data-kind="cost" data-pid="${pid}">${t("+ Cost")}</button>`}</div>
+      <h2>${t("Schedule")}</h2><dl class="kv">${R("", "Start", fd(p.start))}${R("", "Original handover", fd(p.handover))}${R("", "Approved extension", t("{n} days", { n: c.ext }))}${R("", "Revised handover", fdn(c.rev))}${R("", "Forecast finish (last task)", fdn(c.forecast))}${R("", "Tasks done", `${c.done} / ${c.tk.length}`)}${R("", "Late starts", c.late)}</dl>
+      <h2>${t("Money in (client)")}</h2><dl class="kv">${R("", "Contract value", egp(p.contract))}${R("", "Approved variations", egp(c.voAppr))}${R("", "Revised contract", egp(c.revised))}${R("", "Variations waiting", `${c.voPend} · ${egp(c.voPendVal)}`)}${R("", "Value of work done", egp(c.earned))}${R("", "Invoiced", egp(c.invoiced))}${R("", "Work done not yet invoiced", egp(c.notInvoiced))}${R("", "Received", egp(c.received))}${R("", "Outstanding from client", egp(c.outstanding))}${R("", "Overdue invoices", egp(c.overdueInv), c.overdueInv > 0)}${R("", "Retention held", egp(c.retention))}</dl>
+      <h2>${t("Costs & profit")}</h2><dl class="kv">${R("", "Budget", egp(c.budget))}${R("", "Materials (ordered)", egp(c.mat))}${R("", "Labour", egp(c.lab))}${R("", "Subcontractors", egp(c.sub))}${R("", "Equipment", egp(c.eq))}${R("", "Transport & other", egp(c.oth))}${R("", "Total cost", egp(c.total))}${R("", "Budget used", pct(c.budgetUsed), c.budgetUsed > 1)}${R("", "Paid out", egp(c.paidOut))}${R("", "Owed to suppliers & subs", egp(c.owed))}${R("", "Cash position", egp(c.cash), c.cash < 0)}${R("", "Profit so far", egp(c.profit), c.profit < 0)}</dl>
+      <h2>${t("Site")}</h2><dl class="kv">${R("", "Last daily report", fdn(c.lastR))}${R("", "Manpower (last report)", c.manpower)}${R("", "Hours lost to delays", c.hours)}${R("", "Open site issues", c.issues, c.issues > 0)}${R("", "Materials to order", c.toOrder, c.toOrder > 0)}${R("", "Late deliveries", c.lateDel, c.lateDel > 0)}</dl>`;
+  } else if (sub === "tasks") {
+    const tk = c.tk.slice().sort((a, b) => (D(a.t.start) ?? 1e9) - (D(b.t.start) ?? 1e9));
+    h += tk.length ? `<div class="list" style="margin-top:10px">${tk.map(x => taskCard(x)).join("")}</div>` : empty(t("No tasks yet. Add each activity with its crew, start date and duration in working days."));
+    h += fab("+ Task", `add" data-kind="task" data-pid="${pid}`);
+  } else if (sub === "materials") {
+    const mt = c.mt.slice().sort((a, b) => (a.orderBy ?? 1e9) - (b.orderBy ?? 1e9));
+    h += mt.length ? `<div class="list" style="margin-top:10px">${mt.map(x => `<button class="card" data-edit="material" data-pid="${pid}" data-id="${x.m.id}">
+      <div class="row"><div><div class="code">${esc(x.m.no || "")} · ${esc(t(x.m.trade || ""))}${x.m.task ? " · " + esc(t("for {t}", { t: x.m.task })) : ""}</div><div class="ttl">${esc(x.m.item)}</div></div>${chip(x.st)}</div>
+      <div class="meta"><span class="num">${t("Order by {d}", { d: fdn(x.orderBy) })}</span><span class="num">${t("Needed {d}", { d: fdn(x.needed) })}</span>${x.left != null && x.left >= 0 ? `<span class="num">${t("{n} days left", { n: x.left })}</span>` : ""}</div>
+      <div class="meta">${has(x.m.qty) ? `<span class="num">${t("Qty {q} {u}", { q: x.m.qty, u: esc(x.m.unit || "") })}</span>` : ""}${x.onSite != null ? `<span class="num">${t("On site {n}", { n: x.onSite })}</span>` : ""}${x.total ? `<span class="num">${t("{a} EGP", { a: egp(x.total) })}</span>` : ""}${x.toPay > 0 ? `<span class="num" style="color:var(--bad)">${t("To pay {a}", { a: egp(x.toPay) })}</span>` : ""}<span>${esc(x.m.supplier || "")}</span></div></button>`).join("")}</div>` : empty(t("No materials yet. Link each long-lead item to its task to get the last day to order."));
+    h += fab("+ Material", `add" data-kind="material" data-pid="${pid}`);
+  } else if (sub === "vos") {
+    const v = (p.vos || []);
+    h += v.length ? `<div class="list" style="margin-top:10px">${v.map(x => `<button class="card" data-edit="vo" data-pid="${pid}" data-id="${x.id}">
+      <div class="row"><div><div class="code">${esc(x.no || "")} · ${fd(x.date)} · ${esc(t(x.by || ""))}</div><div class="ttl">${esc(x.desc)}</div></div>${chip(x.status)}</div>
+      <div class="meta"><span class="num">${t("Submitted {a}", { a: egp(x.value) })}</span>${x.status === "Approved" ? `<span class="num">${t("Approved {a} · +{n} days", { a: egp(x.apprValue), n: num(x.apprExt) })}</span>` : ""}${x.status === "Submitted" && x.date ? `<span class="num">${t("Waiting {n} days", { n: TODAY - D(x.date) })}</span>` : ""}</div></button>`).join("")}</div>` : empty(t("No variation orders yet."));
+    h += fab("+ Variation", `add" data-kind="vo" data-pid="${pid}`);
+  } else if (sub === "payments") {
+    h += c.py.length ? `<div class="list" style="margin-top:10px">${c.py.map(x => `<button class="card" data-edit="payment" data-pid="${pid}" data-id="${x.y.id}">
+      <div class="row"><div><div class="code">${esc(x.y.no || "")} · ${fd(x.y.date)}</div><div class="ttl">${esc(x.y.desc || t("Invoice"))}</div></div>${chip(x.st)}</div>
+      <div class="meta"><span class="num">${t("Invoiced {a}", { a: egp(x.y.amount) })}</span><span class="num">${t("Net {a}", { a: egp(x.net) })}</span><span class="num">${t("Received {a}", { a: egp(x.y.received) })}</span>${x.out > 0 ? `<span class="num" style="color:var(--warn)">${t("Outstanding {a}", { a: egp(x.out) })}</span>` : ""}<span class="num">${t("Due {d}", { d: fdn(x.due) })}</span></div></button>`).join("")}</div>` : empty(t("No invoices yet."));
+    h += fab("+ Invoice", `add" data-kind="payment" data-pid="${pid}`);
+  } else if (sub === "costs") {
+    const k = (p.costs || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    h += `<p class="sub" style="margin-top:10px">${t("Labour, subcontractors, equipment and transport. Material costs come from the Materials tab.")}</p>`;
+    h += k.length ? `<div class="list">${k.map(x => { const bal = num(x.amount) - num(x.paid); return `<button class="card" data-edit="cost" data-pid="${pid}" data-id="${x.id}">
+      <div class="row"><div><div class="code">${fd(x.date)} · ${esc(t(x.cat || ""))}</div><div class="ttl">${esc(x.desc || "")}</div></div>${chip(bal <= 0 ? "Paid" : num(x.paid) > 0 ? "Part Paid" : "Unpaid")}</div>
+      <div class="meta"><span class="num">${t("{a} EGP", { a: egp(x.amount) })}</span>${bal > 0 ? `<span class="num" style="color:var(--bad)">${t("Balance {a}", { a: egp(bal) })}</span>` : ""}<span>${esc(x.paidTo || "")}</span></div></button>`; }).join("")}</div>` : empty(t("No costs yet."));
+    h += fab("+ Cost", `add" data-kind="cost" data-pid="${pid}`);
+  } else if (sub === "daily") {
+    const r = (p.daily || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    h += r.length ? `<div class="list" style="margin-top:10px">${r.map(x => `<button class="card" data-edit="daily" data-pid="${pid}" data-id="${x.id}">
+      <div class="row"><div><div class="code">${fd(x.date)} · ${esc(t(x.weather || ""))}</div><div class="ttl">${esc(x.work || "")}</div></div>${x.issues ? chip(x.issueStatus || "Open") : ""}</div>
+      <div class="meta"><span class="num">${t("{n} workers ({o} own, {s} sub)", { n: num(x.own) + num(x.sub), o: num(x.own), s: num(x.sub) })}</span>${num(x.hours) ? `<span class="num">${t("{n} h lost · {r}", { n: x.hours, r: esc(t(x.reason || "")) })}</span>` : ""}</div>
+      ${x.issues ? `<div class="meta">${esc(x.issues)}</div>` : ""}</button>`).join("")}</div>` : empty(t("No daily reports yet. Add one at the end of each working day."));
+    h += store.readonly ? "" : `<button class="fab" data-act="todayReport" data-pid="${pid}">${t("+ Today's report")}</button>`;
+  } else if (sub === "info") {
+    const I = (l, v) => `<dt>${t(l)}</dt><dd>${esc(v || "—")}</dd>`;
+    h += `<dl class="kv" style="margin-top:12px">${I("Code", p.code)}${I("Client", p.client)}${I("Consultant", p.consultant)}${I("Location", p.location)}${I("Scope", t(p.scope || ""))}${I("Site engineer", p.eng)}${I("Status", t(p.status || ""))}${I("Contract value", egp(p.contract))}${I("Retention", num(p.retention) + "%")}${I("Payment terms", t("{n} days", { n: num(p.terms) }))}${I("Start", fd(p.start))}${I("Handover", fd(p.handover))}${I("Budget total", egp(c.budget))}</dl>
+      <div class="btns">${store.readonly ? "" : `<button class="btn primary" data-act="editProject" data-pid="${pid}">${t("Edit project info")}</button><button class="btn danger" data-act="delProject" data-pid="${pid}">${t("Delete project")}</button>`}</div>`;
+  }
+  return h;
+}
+function viewTimeline() {
+  const mode = ui.tlMode || "open";
+  const start = TODAY - ((new Date(TODAY * 864e5).getUTCDay() + 1) % 7) - 14; // Saturday, two weeks back
+  const weeks = 20, W = 40, px = d => (d - start) / 7 * W;
+  const rows = C.tasks.filter(x => x.t.start && x.fin != null && (mode === "all" || x.st !== "Done") && x.p.status !== "Handed Over")
+    .sort((a, b) => D(a.t.start) - D(b.t.start));
+  let h = `<h1>${t("Timeline")}</h1><p class="sub">${t("All projects, one week per column, Saturday to Friday.")}</p>
+    <div class="toggle" style="margin-top:10px"><button data-tl="open" class="${mode === "open" ? "on" : ""}">${t("Open tasks")}</button><button data-tl="all" class="${mode === "all" ? "on" : ""}">${t("Include done")}</button></div>
+    <div class="legend"><span><i style="background:var(--info)"></i>${t("Planned / in progress")}</span><span><i style="background:var(--bad)"></i>${t("Overdue")}</span><span><i style="background:var(--warn)"></i>${t("Late Start")}</span><span><i style="background:var(--ok)"></i>${t("Done")}</span><span><i style="background:var(--accent)"></i>${t("Today")}</span></div>`;
+  if (!rows.length) return h + empty(t("No dated tasks to show."));
+  h += `<div class="tl" dir="ltr"><div class="tl-in"><div class="tl-today" style="left:${150 + px(TODAY) + W / 14}px"></div>
+    <div class="tl-row head"><div class="tl-lab" style="font-weight:600" dir="auto">${t("Task")}</div><div class="tl-track" style="width:${weeks * W}px">${Array.from({ length: weeks }, (_, i) => `<span class="tl-wk" style="left:${i * W + 3}px">${(d => `${+d.slice(8)}/${+d.slice(5, 7)}`)(S(start + i * 7))}</span>`).join("")}</div></div>
+    ${rows.map(x => { const a = Math.max(0, px(D(x.t.start))), endD = x.st === "Overdue" ? Math.max(x.fin, TODAY) : x.fin; const b = Math.min(weeks * W, px(endD + 1));
+      return `<div class="tl-row"><div class="tl-lab" title="${esc(x.t.desc)}" dir="auto"><span class="code">${esc(x.p.code)}</span>${x.clash ? "<span class='chip bad' style='padding:0 5px'>!</span>" : ""}${esc(x.t.desc)}</div><div class="tl-track" style="width:${weeks * W}px">${b > a ? `<div class="tl-bar ${x.st.replace(" ", "")}" style="left:${a}px;width:${Math.max(4, b - a)}px" title="${esc(x.t.crew || "")}"></div>` : ""}</div></div>`; }).join("")}
+    </div></div><p class="sub" style="margin-top:8px">${t("Swipe sideways to see later weeks. A red “!” marks a crew clash.")}</p>`;
+  return h;
+}
+function viewCrews() {
+  const cr = state.crews;
+  let h = `<h1>${t("Crews")}</h1><p class="sub">${t("Every crew and subcontractor, with their work across all projects.")}</p>`;
+  h += cr.length ? `<div class="list" style="margin-top:12px">${cr.map(k => {
+    const mine = C.tasks.filter(x => x.t.crew === k.name && x.st !== "Done");
+    const today = mine.filter(x => x.t.start && D(x.t.start) <= TODAY && x.fin >= TODAY).length;
+    const clashes = mine.filter(x => x.clash);
+    const until = mine.reduce((m, x) => x.fin != null && (m == null || x.fin > m) ? x.fin : m, null);
+    const projs = [...new Set(mine.map(x => x.p.code))].join(", ");
+    return `<button class="card" data-edit="crew" data-id="${k.id}">
+      <div class="row"><div><div class="code">${esc(t(k.type || ""))} · ${esc(t(k.trade || ""))}</div><div class="ttl">${esc(k.name)}</div></div><div class="chips">${clashes.length ? chip(t(clashes.length > 1 ? "{n} clashes" : "{n} clash", { n: clashes.length }), "bad") : chip(mine.length ? "Busy" : "Free", mine.length ? "info" : "ok")}</div></div>
+      <div class="meta"><span class="num">${t("{n} open tasks", { n: mine.length })}</span><span class="num">${t("{n} today", { n: today })}</span><span class="num">${t("Busy until {d}", { d: fdn(until) })}</span>${projs ? `<span>${t("On {p}", { p: esc(projs) })}</span>` : ""}</div>
+      ${clashes.length ? `<div class="meta" style="color:var(--bad)">${clashes.map(x => `${esc(x.p.code)} ${esc(x.t.tid || "")} ${fd(x.t.start)}–${fdn(x.fin)}`).join(" · ")}</div>` : ""}
+      ${k.foreman || k.phone ? `<div class="meta"><span>${esc(k.foreman || "")}</span><span class="num">${esc(k.phone || "")}</span></div>` : ""}</button>`; }).join("")}</div>`
+    : empty(t("No crews yet. Add your own crews and subcontractors so tasks can be assigned and clashes found."));
+  return h + fab("+ Crew", "addCrew");
+}
+function viewSetup() {
+  const s = state.settings;
+  return `<h1>${t("Setup")}</h1>
+    <h2>${t("Language")}</h2><div class="toggle"><button data-lang="en" class="${LANG === "en" ? "on" : ""}">English</button><button data-lang="ar" class="${LANG === "ar" ? "on" : ""}">العربية</button></div>
+    <h2>${t("Working days")}</h2>
+    <div class="form"><div class="f h"><label for="setWeekend">${t("Weekend")}</label><select id="setWeekend" data-set="weekend"><option value="fri" ${s.weekend === "fri" ? "selected" : ""}>${t("Friday only")}</option><option value="frisat" ${s.weekend === "frisat" ? "selected" : ""}>${t("Friday & Saturday")}</option></select></div>
+    <div class="f h"><label for="setBuffer">${t("Ordering safety buffer (days)")}</label><input id="setBuffer" type="number" inputmode="numeric" data-set="buffer" value="${esc(s.buffer)}"></div>
+    <div class="f h"><label for="setLook">${t("Look-ahead window (days)")}</label><input id="setLook" type="number" inputmode="numeric" data-set="look" value="${esc(s.look)}"></div>
+    <div class="f"><label for="setHol">${t("Public holidays, one date per line (YYYY-MM-DD). Add Eid when it's announced.")}</label><textarea id="setHol" dir="ltr" data-set="holidays" rows="5">${esc((s.holidays || []).join("\n"))}</textarea></div></div>
+    <h2>${t("Your data")}</h2>
+    <div class="note info">${store.mode === "cloud" ? t("Your projects are saved to your private SiteBoard storage and appear on any device where you open this link signed in.") : IS_APP ? t("Your projects are saved on this phone. Export a backup now and then so nothing is lost if the phone is lost or reset.") : t("Your projects are saved in this browser only. Export a backup regularly.")}</div>
+    <div class="btns"><button class="btn" data-act="export">${t("Export backup")}</button>${store.readonly ? "" : `<button class="btn" data-act="import">${t("Import backup")}</button><button class="btn" data-act="loadSample">${t("Load 3 sample projects")}</button><button class="btn danger" data-act="wipe">${t("Delete all data")}</button>`}</div>
+    <div id="exportBox"></div>
+    <h2>${t("About")}</h2><p class="sub">${t("SiteBoard · {p} projects · {c} crews · figures in EGP. Finish dates skip the weekend and the holidays above.", { p: state.projects.length, c: state.crews.length })}</p>`;
+}
+
+/* ---------- forms ---------- */
+const crewNames = () => state.crews.map(k => k.name);
+const FORMS = {
+  project: { title: "Project", fields: [
+    { k: "name", l: "Project name", req: 1 }, { k: "client", l: "Client", h: 1 }, { k: "consultant", l: "Consultant", h: 1 },
+    { k: "location", l: "Location", h: 1 }, { k: "eng", l: "Site engineer", h: 1 }, { k: "scope", l: "Scope", t: "sel", o: PSCOPE, h: 1 },
+    { k: "status", l: "Status", t: "sel", o: PSTATUS, h: 1 }, { k: "contract", l: "Contract value (EGP)", t: "num" },
+    { k: "retention", l: "Retention %", t: "num", h: 1 }, { k: "terms", l: "Client pays within (days)", t: "num", h: 1 },
+    { k: "start", l: "Start date", t: "date", h: 1 }, { k: "handover", l: "Handover date", t: "date", h: 1 },
+    { sec: "Budget (EGP)" }, { k: "bMat", l: "Materials", t: "num", h: 1 }, { k: "bLab", l: "Labour", t: "num", h: 1 },
+    { k: "bSub", l: "Subcontractors", t: "num", h: 1 }, { k: "bEq", l: "Equipment", t: "num", h: 1 }, { k: "bOth", l: "Transport & other", t: "num", h: 1 } ] },
+  task: { title: "Task", list: "tasks", fields: [
+    { k: "tid", l: "Task ID", h: 1 }, { k: "scope", l: "Scope", t: "sel", o: SCOPES, h: 1 }, { k: "desc", l: "Task", req: 1 },
+    { k: "trade", l: "Trade", t: "sel", o: TRADES, h: 1 }, { k: "area", l: "Floor / area", h: 1 }, { k: "crew", l: "Crew / subcontractor", t: "sel", o: crewNames },
+    { k: "start", l: "Planned start", t: "date", h: 1 }, { k: "dur", l: "Duration (work days)", t: "num", h: 1 },
+    { k: "astart", l: "Actual start", t: "date", h: 1 }, { k: "afinish", l: "Actual finish", t: "date", h: 1 },
+    { k: "pct", l: "% complete (0–100)", t: "num", h: 1 }, { k: "notes", l: "Notes", t: "area" } ] },
+  material: { title: "Material", list: "materials", fields: [
+    { k: "item", l: "Item / material", req: 1 }, { k: "no", l: "Request no.", h: 1 }, { k: "trade", l: "Trade", t: "sel", o: TRADES, h: 1 },
+    { k: "task", l: "Needed for task", t: "sel", o: "tasks" }, { k: "neededManual", l: "Needed on site (if no task)", t: "date", h: 1 }, { k: "lead", l: "Lead time (days)", t: "num", h: 1 },
+    { k: "supplier", l: "Supplier" }, { k: "qty", l: "Quantity", t: "num", h: 1 }, { k: "unit", l: "Unit", t: "sel", o: UNITS, h: 1 },
+    { k: "price", l: "Unit price (EGP)", t: "num", h: 1 }, { k: "orderedOn", l: "Ordered on", t: "date", h: 1 },
+    { k: "qtyDel", l: "Qty delivered", t: "num", h: 1 }, { k: "deliveredOn", l: "Delivered on", t: "date", h: 1 },
+    { k: "qtyUsed", l: "Qty used", t: "num", h: 1 }, { k: "paid", l: "Amount paid (EGP)", t: "num", h: 1 }, { k: "paidOn", l: "Paid on", t: "date", h: 1 } ] },
+  vo: { title: "Variation order", list: "vos", fields: [
+    { k: "no", l: "VO no.", h: 1 }, { k: "date", l: "Date submitted", t: "date", h: 1 }, { k: "desc", l: "Description", req: 1 },
+    { k: "by", l: "Requested by", t: "sel", o: REQBY, h: 1 }, { k: "trade", l: "Trade", t: "sel", o: TRADES, h: 1 },
+    { k: "value", l: "Submitted value (EGP)", t: "num", h: 1 }, { k: "extReq", l: "Extension asked (days)", t: "num", h: 1 },
+    { k: "status", l: "Status", t: "sel", o: VOST }, { k: "apprDate", l: "Approved on", t: "date", h: 1 }, { k: "apprValue", l: "Approved value (EGP)", t: "num", h: 1 },
+    { k: "apprExt", l: "Approved extension (days)", t: "num", h: 1 }, { k: "notes", l: "Notes", t: "area" } ] },
+  payment: { title: "Client invoice", list: "payments", fields: [
+    { k: "no", l: "Invoice no.", h: 1 }, { k: "date", l: "Invoice date", t: "date", h: 1 }, { k: "desc", l: "Description / period" },
+    { k: "amount", l: "Amount invoiced (EGP)", t: "num", req: 1 }, { k: "received", l: "Amount received (EGP)", t: "num", h: 1 }, { k: "recvDate", l: "Date received", t: "date", h: 1 } ] },
+  cost: { title: "Cost", list: "costs", fields: [
+    { k: "date", l: "Date", t: "date", h: 1 }, { k: "cat", l: "Category", t: "sel", o: COSTCAT, h: 1 }, { k: "desc", l: "Description", req: 1 },
+    { k: "trade", l: "Trade", t: "sel", o: TRADES, h: 1 }, { k: "paidTo", l: "Paid to", h: 1 }, { k: "amount", l: "Amount (EGP)", t: "num", h: 1 },
+    { k: "paid", l: "Amount paid (EGP)", t: "num", h: 1 }, { k: "paidOn", l: "Paid on", t: "date" } ] },
+  daily: { title: "Daily report", list: "daily", fields: [
+    { k: "date", l: "Date", t: "date", h: 1, req: 1 }, { k: "weather", l: "Weather", t: "sel", o: WEATHER, h: 1 },
+    { k: "own", l: "Own labour", t: "num", h: 1 }, { k: "sub", l: "Subcontractor labour", t: "num", h: 1 }, { k: "eng", l: "Engineers / supervisors", t: "num", h: 1 },
+    { k: "equip", l: "Equipment on site", h: 1 }, { k: "work", l: "Work done today", t: "area" }, { k: "issues", l: "Problems / issues", t: "area" },
+    { k: "hours", l: "Hours lost", t: "num", h: 1 }, { k: "reason", l: "Delay reason", t: "sel", o: REASONS, h: 1 },
+    { k: "issueStatus", l: "Issue status", t: "sel", o: ["Open","Closed"], h: 1 }, { k: "by", l: "Reported by", h: 1 } ] },
+  crew: { title: "Crew / subcontractor", fields: [
+    { k: "name", l: "Name", req: 1 }, { k: "type", l: "Type", t: "sel", o: ["Own Crew","Subcontractor"], h: 1 }, { k: "trade", l: "Trade", t: "sel", o: TRADES, h: 1 },
+    { k: "foreman", l: "Foreman / contact", h: 1 }, { k: "phone", l: "Phone", h: 1 } ] }
+};
+let sheet = null;
+function openForm(kind, values, { pid, onSave, onDelete } = {}) {
+  const def = FORMS[kind], p = pid ? proj(pid) : null;
+  const opts = f => typeof f.o === "function" ? f.o() : f.o === "tasks" ? (p.tasks || []).map(t => t.tid).filter(Boolean) : f.o;
+  const fields = def.fields.map((f, i) => {
+    if (f.sec) return `<div class="sec">${esc(t(f.sec))}</div>`;
+    const id = `fld-${kind}-${f.k}`, v = values[f.k] ?? "";
+    let input;
+    if (f.t === "sel") { const o = opts(f) || []; const all = v && !o.includes(v) ? [v, ...o] : o; input = `<select id="${id}" name="${f.k}"><option value=""></option>${all.map(x => `<option value="${esc(x)}" ${x === v ? "selected" : ""}>${esc(t(x))}</option>`).join("")}</select>`; }
+    else if (f.t === "area") input = `<textarea id="${id}" name="${f.k}">${esc(v)}</textarea>`;
+    else if (f.t === "num") input = `<input id="${id}" name="${f.k}" type="number" step="any" inputmode="decimal" value="${esc(v)}">`;
+    else if (f.t === "date") input = `<input id="${id}" name="${f.k}" type="date" value="${esc(v)}">`;
+    else input = `<input id="${id}" name="${f.k}" type="text" value="${esc(v)}" ${f.req ? "required" : ""}>`;
+    return `<div class="f ${f.h ? "h" : ""}"><label for="${id}">${esc(t(f.l))}${f.req ? " *" : ""}</label>${input}</div>`;
+  }).join("");
+  $("#layer").innerHTML = `<div class="scrim" data-close="1"><form class="sheet" id="sheetForm" novalidate>
+    <h3>${esc(t(values.id ? "Edit {x}" : "New {x}", { x: t(def.title.toLowerCase()) }))}</h3><div class="form">${fields}</div>
+    <div class="actions"><div>${onDelete && !store.readonly ? `<button type="button" class="btn danger" id="delBtn">${t("Delete")}</button>` : ""}</div>
+    <div class="btns" style="margin:0"><button type="button" class="btn" data-close="1">${t("Cancel")}</button>${store.readonly ? "" : `<button type="submit" class="btn primary">${t("Save")}</button>`}</div></div></form></div>`;
+  sheet = { kind, def, onSave };
+  const form = $("#sheetForm");
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const out = Object.assign({}, values);
+    for (const f of def.fields) { if (!f.k) continue; const el = form.elements[f.k]; let v = el.value.trim();
+      if (f.t === "num") v = v === "" ? "" : Number(v);
+      if (v === "") delete out[f.k]; else out[f.k] = v; }
+    const missing = def.fields.find(f => f.req && !has(out[f.k]));
+    if (missing) { toast(t("{f} is required.", { f: t(missing.l) })); form.elements[missing.k].focus(); return; }
+    closeSheet(); onSave(out);
+  });
+  const del = $("#delBtn");
+  if (del) del.addEventListener("click", () => {
+    if (del.classList.contains("armed")) { closeSheet(); onDelete(); return; }
+    del.classList.add("armed"); del.textContent = t("Tap again to delete");
+    setTimeout(() => { if (del.isConnected) { del.classList.remove("armed"); del.textContent = t("Delete"); } }, 3500);
+  });
+  const first = form.querySelector("input,select,textarea"); if (first && !values.id) setTimeout(() => first.focus(), 50);
+}
+function closeSheet() { $("#layer").innerHTML = ""; sheet = null; }
+function editItem(kind, pid, id) {
+  const p = proj(pid), list = FORMS[kind].list;
+  const item = id ? (p[list] || []).find(x => x.id === id) : null;
+  let values = item ? clone(item) : {};
+  if (!item) {
+    if (kind === "task") { const n = (p.tasks || []).reduce((m, t) => Math.max(m, parseInt(String(t.tid || "").replace(/\D/g, "")) || 0), 0); values = { tid: "T-" + String(n + 1).padStart(3, "0"), scope: p.scope === "Finishes" ? "Finishes" : "MEP", start: TODAY_S }; }
+    if (kind === "material") values = { no: "MR-" + String((p.materials || []).length + 1).padStart(2, "0") };
+    if (kind === "vo") values = { no: "VO-" + String((p.vos || []).length + 1).padStart(2, "0"), date: TODAY_S, status: "Submitted" };
+    if (kind === "payment") values = { no: "INV-" + String((p.payments || []).length + 1).padStart(2, "0"), date: TODAY_S };
+    if (kind === "cost") values = { date: TODAY_S, cat: "Labour" };
+    if (kind === "daily") values = { date: TODAY_S, weather: "Normal", reason: "None" };
+  }
+  openForm(kind, values, { pid,
+    onSave: v => { const arr = p[list] = p[list] || []; if (!v.id) { v.id = uid(); arr.push(v); } else { const i = arr.findIndex(x => x.id === v.id); arr[i] = v; } saveProject(p); toast(t("Saved")); },
+    onDelete: item ? () => { p[list] = p[list].filter(x => x.id !== id); saveProject(p); toast(t("Deleted")); } : null });
+}
+function editProject(pid) {
+  const p = pid ? proj(pid) : null;
+  const values = p ? clone(p) : { status: "Active", scope: "MEP + Finishes", retention: 5, terms: 30, start: TODAY_S };
+  openForm("project", values, { onSave: v => {
+    if (!p) {
+      const n = state.projects.reduce((m, x) => Math.max(m, parseInt(String(x.code).replace(/\D/g, "")) || 0), 0);
+      Object.assign(v, { id: uid(), code: "P" + String(n + 1).padStart(2, "0"), tasks: [], materials: [], vos: [], payments: [], costs: [], daily: [] });
+      state.projects.push(v); saveProject(v); location.hash = "#p-" + v.id; toast(t("Project added"));
+    } else { const i = state.projects.findIndex(x => x.id === p.id); state.projects[i] = v; saveProject(v); toast(t("Saved")); }
+  } });
+}
+function editCrew(id) {
+  const k = id ? state.crews.find(x => x.id === id) : null;
+  openForm("crew", k ? clone(k) : { type: "Own Crew" }, {
+    onSave: v => {
+      if (!k) { v.id = uid(); state.crews.push(v); saveCrews(); }
+      else {
+        const old = k.name; Object.assign(k, v);
+        if (old !== v.name) state.projects.forEach(p => { let ch = false; (p.tasks || []).forEach(t => { if (t.crew === old) { t.crew = v.name; ch = true; } }); if (ch) store.write("p-" + p.id, p); });
+        saveCrews();
+      }
+      toast(t("Saved"));
+    },
+    onDelete: k ? () => { state.crews = state.crews.filter(x => x.id !== id); saveCrews(); toast(t("Deleted")); } : null });
+}
+
+/* ---------- actions ---------- */
+async function loadSample() {
+  const s = clone(SAMPLE);
+  const names = new Set(state.crews.map(k => k.name));
+  s.crews.forEach(k => { if (!names.has(k.name)) state.crews.push(k); });
+  for (const p of s.projects) {
+    if (state.projects.some(x => x.id === p.id)) continue;
+    const n = state.projects.reduce((m, x) => Math.max(m, parseInt(String(x.code).replace(/\D/g, "")) || 0), 0);
+    p.code = "P" + String(n + 1).padStart(2, "0");
+    state.projects.push(p);
+  }
+  compute(); render();
+  await store.write("crews", { list: state.crews });
+  for (const p of s.projects) { const q = proj(p.id); if (q) await store.write("p-" + q.id, q); }
+  toast(t("Sample projects loaded. Edit or delete them any time."));
+}
+async function exportBackup() {
+  const data = JSON.stringify({ app: "SiteBoard", version: 1, exported: TODAY_S, ...state }, null, 1);
+  if (IS_APP) { const where = window.Android.saveFile(`siteboard-backup-${TODAY_S}.json`, data); if (where) { toast(t("Backup saved to {p}", { p: where })); return; } }
+  let dl = null; try { dl = IS_APP ? null : await window.claude?.use?.("downloads"); } catch (e) {}
+  if (dl) {
+    try { await dl.save({ filename: `siteboard-backup-${TODAY_S}.json`, data }); toast(t("Backup saved")); return; }
+    catch (e) { if (e && e.code === "declined") return; }
+  }
+  $("#exportBox").innerHTML = `<div class="form" style="margin-top:10px"><div class="f"><label for="exportText">${t("Copy this text and keep it somewhere safe")}</label><textarea id="exportText" rows="6" readonly dir="ltr">${esc(data)}</textarea></div></div><div class="btns"><button class="btn" data-act="copyExport">${t("Copy")}</button></div>`;
+}
+async function importBackup(text) {
+  let v; try { v = JSON.parse(text); } catch (e) { toast(t("That file isn't a SiteBoard backup.")); return; }
+  if (!v || !Array.isArray(v.projects) || !Array.isArray(v.crews)) { toast(t("That file isn't a SiteBoard backup.")); return; }
+  const old = state.projects.map(p => p.id);
+  state = { settings: Object.assign(clone(DEFAULT_SETTINGS), v.settings || {}), crews: v.crews, projects: v.projects };
+  compute(); render();
+  await store.write("settings", state.settings); await store.write("crews", { list: state.crews });
+  for (const p of state.projects) await store.write("p-" + p.id, p);
+  for (const id of old) if (!state.projects.some(p => p.id === id)) await store.remove("p-" + id);
+  toast(t("Backup restored: {n} projects", { n: state.projects.length }));
+}
+async function wipe() {
+  const ids = state.projects.map(p => p.id);
+  state = { settings: clone(DEFAULT_SETTINGS), crews: [], projects: [] }; compute(); location.hash = "#home"; render();
+  for (const id of ids) await store.remove("p-" + id);
+  await store.remove("crews"); await store.remove("settings");
+  if (store.mode === "local") store.saveLocal();
+  toast(t("All data deleted"));
+}
+let armedBtn = null;
+function twoTap(btn, fn) {
+  if (armedBtn === btn) { armedBtn = null; fn(); return; }
+  armedBtn = btn; const txt = btn.textContent; btn.classList.add("armed"); btn.textContent = t("Tap again to confirm");
+  setTimeout(() => { if (btn.isConnected) { btn.classList.remove("armed"); btn.textContent = txt; } if (armedBtn === btn) armedBtn = null; }, 3500);
+}
+
+/* ---------- routing + events ---------- */
+const ui = { projFilter: "active", tlMode: "open" };
+function route() { return (location.hash || "#home").slice(1); }
+function render() {
+  $("#today").innerHTML = `${DAYS[LANG][new Date(TODAY * 864e5).getUTCDay()]}<br>${fd(TODAY_S)}`;
+  if (!loaded) return;
+  compute();
+  const r = route(); let html = "", tab = "home";
+  if (r === "projects") { html = viewProjects(); tab = "projects"; }
+  else if (r.startsWith("p-")) { const [, id, sub] = r.split("-"); html = viewProject(id, sub); tab = "projects"; }
+  else if (r === "timeline") { html = viewTimeline(); tab = "timeline"; }
+  else if (r === "crews") { html = viewCrews(); tab = "crews"; }
+  else if (r === "setup") { html = viewSetup(); tab = "setup"; }
+  else if (r === "money") html = viewMoney();
+  else if (r === "alerts-all") html = viewAlertsAll();
+  else html = viewHome();
+  $("#app").innerHTML = noteBar() + html;
+  document.querySelectorAll("nav.tabs a").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
+}
+window.addEventListener("hashchange", () => { closeSheet(); render(); window.scrollTo(0, 0); });
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-close],[data-go],[data-edit],[data-act],[data-pf],[data-tl],[data-lang]");
+  if (!el) return;
+  if (el.dataset.close !== undefined) { if (e.target === el || el.tagName === "BUTTON") closeSheet(); return; }
+  if (el.dataset.go) { const g = el.dataset.go; if (g === "#alerts") { const a = document.getElementById("alerts"); if (a) a.scrollIntoView({ behavior: "smooth" }); } else location.hash = g; return; }
+  if (el.dataset.lang) { setLang(el.dataset.lang); return; }
+  if (el.dataset.pf) { ui.projFilter = el.dataset.pf; render(); return; }
+  if (el.dataset.tl) { ui.tlMode = el.dataset.tl; render(); return; }
+  if (el.dataset.edit) { const k = el.dataset.edit; if (k === "crew") editCrew(el.dataset.id); else editItem(k, el.dataset.pid, el.dataset.id); return; }
+  const a = el.dataset.act;
+  if (a === "lang") setLang(LANG === "ar" ? "en" : "ar");
+  else if (a === "newProject") editProject();
+  else if (a === "editProject") editProject(el.dataset.pid);
+  else if (a === "delProject") twoTap(el, () => { const id = el.dataset.pid; state.projects = state.projects.filter(p => p.id !== id); store.remove("p-" + id); location.hash = "#projects"; toast(t("Project deleted")); });
+  else if (a === "add") editItem(el.dataset.kind, el.dataset.pid);
+  else if (a === "todayReport") { const p = proj(el.dataset.pid); const r = (p.daily || []).find(x => x.date === TODAY_S); editItem("daily", p.id, r ? r.id : null); }
+  else if (a === "addCrew") editCrew();
+  else if (a === "loadSample") twoTap(el, loadSample);
+  else if (a === "export") exportBackup();
+  else if (a === "import") $("#importFile").click();
+  else if (a === "wipe") twoTap(el, wipe);
+  else if (a === "copyExport") { const t = $("#exportText"); const done = () => toast(tx("Copied")); try { navigator.clipboard.writeText(t.value).then(done, () => { t.select(); toast(tx("Text selected: copy it")); }); } catch (err) { t.select(); } }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.id === "importFile" && el.files[0]) { const fr = new FileReader(); fr.onload = () => importBackup(String(fr.result)); fr.readAsText(el.files[0]); el.value = ""; return; }
+  const k = el.dataset.set; if (!k) return;
+  if (k === "holidays") state.settings.holidays = el.value.split(/\s+/).map(x => x.trim()).filter(x => /^\d{4}-\d{2}-\d{2}$/.test(x));
+  else if (k === "weekend") state.settings.weekend = el.value;
+  else state.settings[k] = num(el.value);
+  saveSettings(); toast(t("Saved"));
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && sheet) closeSheet(); });
+let toastT = null;
+function toast(msg) { let t = document.querySelector(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); } t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200); }
+
+applyLang();
+render();
+store.init();
+</script>
+</body></html>

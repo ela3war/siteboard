@@ -1,0 +1,35 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.siteboard.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.siteboard.app"
+        minSdk 26
+        targetSdk 34
+        versionCode((System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger())
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("siteboard.keystore")
+            storePassword "siteboard2026"
+            keyAlias "siteboard"
+            keyPassword "siteboard2026"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- simple building with crane: dark ink on safety yellow -->
+    <path android:fillColor="#1B2425" android:pathData="M34,78 L34,46 L54,34 L74,46 L74,78 Z" />
+    <path android:fillColor="#F2B705" android:pathData="M48,78 L48,62 L60,62 L60,78 Z" />
+    <path android:fillColor="#F2B705" android:pathData="M40,50 L46,50 L46,56 L40,56 Z M62,50 L68,50 L68,56 L62,56 Z" />
+    <path android:fillColor="#1B2425" android:pathData="M30,78 L78,78 L78,82 L30,82 Z" />
+</vector>
